@@ -283,7 +283,24 @@ tr:hover td{background:#fafaf8;}
 
     <!-- EXEC SUMMARY -->
     <div class="sec active" id="s-exec">
-      <div class="shdr"><h2>Executive summary</h2><p>Manager view — all BC portfolios, team rollups, and at-risk clients. Use the filter bar above to drill into a BC or team.</p></div>
+      <div class="shdr">
+        <h2>Executive summary</h2>
+        <p>Manager view — all BC portfolios, team rollups, and at-risk clients. Use the filter bar above to drill into a BC or team.</p>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <div style="background:rgba(117,235,158,.12);border:1px solid rgba(117,235,158,.4);border-radius:6px;padding:5px 12px;font-size:12px;color:#166534">
+            <strong>Power Clinical User</strong> — active ≥18 days in 30-day period with &gt;200 encounters
+          </div>
+          <div style="background:rgba(247,148,29,.1);border:1px solid rgba(247,148,29,.35);border-radius:6px;padding:5px 12px;font-size:12px;color:#92400e">
+            <strong>Standard Clinical User</strong> — encounter user, active but below power threshold (&gt;50 encounters)
+          </div>
+          <div style="background:rgba(119,87,236,.1);border:1px solid rgba(119,87,236,.3);border-radius:6px;padding:5px 12px;font-size:12px;color:#5b21b6">
+            <strong>Admin / Power Support</strong> — feature-heavy user with no or minimal encounters (&gt;300 feature events)
+          </div>
+          <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--mu)">
+            <strong>Casual User</strong> — low engagement across encounters and features
+          </div>
+        </div>
+      </div>
 
       <!-- PRIMARY KPIs -->
       <div class="kg5">
@@ -401,7 +418,31 @@ tr:hover td{background:#fafaf8;}
 
     <!-- OVERVIEW -->
     <div class="sec" id="s-overview">
-      <div class="shdr"><h2>Overview</h2><p>Client base health, activity trends and feature engagement · filtered set</p></div>
+      <div class="shdr">
+        <h2>Overview</h2>
+        <p>Client base health, activity trends and feature engagement · filtered set</p>
+        <div style="margin-top:10px">
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Hide usage definitions':'▶ Show usage definitions'"
+            style="font-size:12px;font-weight:700;color:var(--or);background:none;border:none;cursor:pointer;padding:0">
+            ▶ Show usage definitions
+          </button>
+          <div style="display:none;margin-top:10px;padding:14px 16px;background:var(--sf2);border-radius:var(--r-sm);border:1px solid var(--bd)">
+            <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Usage definitions</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;font-size:12px">
+              <div><strong>Encounter client</strong> — had at least 1 consult-complete event in the 30-day window (i.e. a billing encounter was completed in HbC)</div>
+              <div><strong>Feature-only client</strong> — logged into HbC and used features but did not complete any consult-complete events</div>
+              <div><strong>No activity</strong> — no events recorded in the 30-day window (client may still be contracted)</div>
+              <div><strong>Power Clinical User</strong> — active on ≥18 days within the 30-day period with &gt;200 total encounters</div>
+              <div><strong>Standard Clinical User</strong> — encounter user, active but below the power threshold (&gt;50 encounters)</div>
+              <div><strong>Admin / Power Support</strong> — heavy feature usage (&gt;300 feature events) with minimal or no encounters</div>
+              <div><strong>Casual User</strong> — low engagement — few encounters and few feature events in the window</div>
+              <div><strong>Days active</strong> — number of distinct calendar days on which any usage event was recorded for that practice in the 30-day window</div>
+              <div><strong>AI events</strong> — events from category "5. AI Features" (Nora/Clinical Assistant usage)</div>
+              <div><strong>Feature events</strong> — all events excluding Noise / Passive category (passive background events are excluded from meaningful usage counts)</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="kg4">
         <div class="kpi kor"><div class="klbl">Active clients</div><div class="kval" id="ok1">—</div><div class="ksub" id="ok1s">of filtered set</div></div>
         <div class="kpi kgr"><div class="klbl">Enc. users avg/day</div><div class="kval" id="ok2">—</div><div class="ksub"><span class="du">+8.2% WoW</span></div></div>
@@ -450,8 +491,13 @@ tr:hover td{background:#fafaf8;}
         <div class="chw h280"><canvas id="c-ea"></canvas></div>
       </div>
       <div class="cfull card">
-        <div class="ct">Client encounter detail</div>
-        <div class="cs">Filtered set · ranked by 30-day encounter volume · BPN, TPN and treating providers included</div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+          <div class="ct" style="margin:0">Client encounter detail</div>
+          <select id="enc-team-filter" onchange="renderEncTable()" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--ch)">
+            <option value="">All teams</option>
+          </select>
+        </div>
+        <div class="cs" style="margin-top:0">Filtered set · ranked by 30-day encounter volume · BPN, TPN and treating providers included</div>
         <div class="tw"><table>
           <thead><tr><th>#</th><th>Practice name</th><th>BPN</th><th>Treating providers (TPN)</th><th>BC</th><th>Team</th><th>PMA</th><th>App version</th><th>Persona</th><th>Enc (30d)</th><th>Avg/day</th><th>Status</th></tr></thead>
           <tbody id="enc-tbody"></tbody>
@@ -469,7 +515,12 @@ tr:hover td{background:#fafaf8;}
         <div class="kpi kbu"><div class="klbl">Feature-only users</div><div class="kval">3 100</div><div class="ksub">Daily avg · no consult-complete</div></div>
       </div>
       <div class="ch3">
-        <div class="card"><div class="ct">Feature category trends (stacked)</div><div class="cs">Daily event volume by category · 30 days</div><div class="chw h280"><canvas id="c-st"></canvas></div></div>
+        <div class="card">
+          <div class="ct" style="margin-bottom:4px">Feature category trends</div>
+          <div class="cs" style="margin-bottom:10px">Daily event volume · 30 days · select categories to compare</div>
+          <div id="feat-cat-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+          <div class="chw h280"><canvas id="c-st"></canvas></div>
+        </div>
         <div class="card" style="padding:0;overflow:hidden">
           <div style="padding:16px 18px 12px"><div class="ct">Feature usage by category</div><div class="cs">Click any category to expand individual features · % of meaningful events (Noise excluded from share)</div></div>
           <div id="adp-bars"></div>
@@ -639,7 +690,8 @@ const CLIENTS=RAW_CLIENTS.map((r,i)=>{
   const feat=hc?ri(20,4200):ri(0,30);
   const ai=enc>100?ri(20,540):ri(0,40);
   const da=hc&&enc>0?ri(5,28):ri(0,5);
-  const per=enc>200&&da>20?'Power Clinical User':enc>50?'Standard Clinical User':feat>300?'Admin/Power Support':'Casual User';
+  const isActiveClient = hc && normaliseStatus(r.cs) !== 'Inactive' && normaliseStatus(r.cs) !== 'Rejected' && normaliseStatus(r.cs) !== 'Cancelled';
+  const per=isActiveClient&&enc>200&&da>18?'Power Clinical User':isActiveClient&&enc>50?'Standard Clinical User':feat>300?'Admin/Power Support':'Casual User';
   const ld=new Date(yest);ld.setDate(ld.getDate()-(status==='Inactive'?ri(16,45):ri(0,7)));
   const tier=hc?(i%3===0?'T1':'T0'):'—';
   const contractStart=hc?`${ri(2022,2024)}-0${ri(1,9)}-01`:'—';
@@ -1003,10 +1055,12 @@ function applyLiveData(sheetData) {
     if (live.LastActiveDate) c.lastA = live.LastActiveDate;
 
     // Re-derive persona from real data
-    c.per = c.enc > 200 && c.da > 20 ? 'Power Clinical User'
-           : c.enc > 50               ? 'Standard Clinical User'
-           : c.feat > 300             ? 'Admin/Power Support'
-                                      : 'Casual User';
+    // Fix 3: exclude inactive/rejected/cancelled clients from clinical personas
+    const isActiveC = normaliseStatus(c.status) === 'Active' || normaliseStatus(c.status) === 'Trial' || normaliseStatus(c.status) === 'In Progress';
+    c.per = isActiveC && c.enc > 200 && c.da > 18 ? 'Power Clinical User'
+           : isActiveC && c.enc > 50               ? 'Standard Clinical User'
+           : c.feat > 300                           ? 'Admin/Power Support'
+                                                    : 'Casual User';
     enriched++;
   });
 
@@ -1082,6 +1136,39 @@ const PB={'Power Clinical User':'pow','Standard Clinical User':'std','Admin/Powe
 const PC={'Power Clinical User':GR,'Standard Clinical User':OR,'Admin/Power Support':PU,'Casual User':'#ccc'};
 function pbadge(per){return `<span class="b b${PB[per]||'cas'}">${per}</span>`;}
 
+// ── STATUS NORMALISATION ──────────────────────────────────────────────────────
+// The 3C sheet uses mixed-case and compound values; normalise them to a
+// small set so badge styling works consistently everywhere.
+function normaliseStatus(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s || s === 'unassigned') return 'Unassigned';
+  if (s === 'active')                                         return 'Active';
+  if (s === 'trial')                                          return 'Trial';
+  if (s === 'inprogress' || s === 'in progress')              return 'In Progress';
+  if (s === 'pendingcancellation' || s === 'pending cancellation') return 'Pending Cancellation';
+  if (s === 'contrejected')                                   return 'Rejected';
+  if (s === 'cancelled' || s === 'canceled')                  return 'Cancelled';
+  if (s === 'rejected')                                       return 'Rejected';
+  if (s === 'inactive')                                       return 'Inactive';
+  // Title-case anything else
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function statusBadge(raw) {
+  const s = normaliseStatus(raw);
+  const cls = {
+    'Active':               'ba',
+    'Trial':                'bt',
+    'In Progress':          'bt',
+    'Pending Cancellation': 'bt',
+    'Inactive':             'bi',
+    'Rejected':             'bi',
+    'Cancelled':            'bi',
+    'Unassigned':           'bcri',
+  }[s] || 'bcas';
+  return `<span class="b ${cls}">${s}</span>`;
+}
+
 // ── SPECIALITY SPLIT ─────────────────────────────────────────────────────────
 // Reads Speciality from BCOwnership data (stored on client.ownership.Speciality)
 // and renders a ranked bar chart showing total, encounter, and feature-only
@@ -1097,10 +1184,13 @@ function renderSpecialityChart() {
   FC.forEach(c => {
     // Speciality comes from BCOwnership row stored on the client,
     // falling back to the embedded spec field if live data not yet applied
-    const raw = (c.ownership && c.ownership.Speciality)
+    const rawSpec = (c.ownership && c.ownership.Speciality)
       ? String(c.ownership.Speciality).trim()
       : (c.spec || 'Unknown');
-    const spec = raw || 'Unknown';
+    // Fix 4: normalise GP variants to one label
+    const spec = !rawSpec ? 'Unknown'
+      : /^gp$/i.test(rawSpec) ? 'General Practitioner'
+      : rawSpec;
 
     if (!map[spec]) map[spec] = { total:0, enc:0, feat:0, none:0 };
     map[spec].total++;
@@ -1175,6 +1265,21 @@ function renderSpecialityChart() {
       </div>
     </div>
   `;
+}
+
+// ── FEATURE DISPLAY NAME LOOKUP ──────────────────────────────────────────────
+// Converts raw feature keys (e.g. 'consult-complete') to human-readable labels
+// using the FEATURES_MAP display names. Falls back to title-cased raw name.
+const FEAT_DISPLAY_MAP = (() => {
+  const m = {};
+  Object.values(FEATURES_MAP).forEach(arr => {
+    arr.forEach(f => { m[f.n] = f.d; });
+  });
+  return m;
+})();
+function featLabel(raw) {
+  if (!raw) return '—';
+  return FEAT_DISPLAY_MAP[raw] || raw.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function pmaBadge(pma){
@@ -1370,7 +1475,7 @@ function renderExec(){
               const h=c.enc>100?'g':c.enc>20?'y':'r';
               const hl=c.enc>100?'Good':c.enc>20?'Watch':'At risk';
               const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
-              return `<tr><td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}</td><td class="tm">${isBC?c.bpn:'—'}</td><td>${prov}</td><td>${pmaBadge(c.pma)}</td><td>${verChip(c.appVer,c.onLatest)}</td><td><span class="b b${c.status.toLowerCase().slice(0,1)==='a'?'a':c.status.toLowerCase().slice(0,1)==='t'?'t':'i'}">${c.status}</span></td><td><strong>${c.enc.toLocaleString()}</strong></td><td>${c.ai}</td><td>${pbadge(c.per)}</td><td><span class="hd hd${h}"></span>${hl}</td></tr>`;
+              return `<tr><td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}</td><td class="tm">${isBC?c.bpn:'—'}</td><td>${prov}</td><td>${pmaBadge(c.pma)}</td><td>${verChip(c.appVer,c.onLatest)}</td><td>${statusBadge(c.status)}</td><td><strong>${c.enc.toLocaleString()}</strong></td><td>${c.ai}</td><td>${pbadge(c.per)}</td><td><span class="hd hd${h}"></span>${hl}</td></tr>`;
             }).join('')}</tbody>
           </table>
         </div>`;
@@ -1397,7 +1502,7 @@ function toggleP(uid,hdr){document.getElementById(uid).classList.toggle('open');
 // ── OVERVIEW ──
 function renderOverview(){
   const fc=FC;
-  document.getElementById('ok1').textContent=fc.filter(c=>c.status==='Active').length;
+  document.getElementById('ok1').textContent=fc.filter(c=>normaliseStatus(c.status)==='Active').length;
   document.getElementById('ok1s').textContent=`of ${fc.length} in filtered set`;
   const tEnc=fc.reduce((a,c)=>a+c.enc,0);
   document.getElementById('ok2').textContent=Math.round(tEnc/30);
@@ -1412,12 +1517,60 @@ function renderEncKPIs(){
   document.getElementById('enk4').textContent=fc.filter(c=>c.enc<5&&c.hc).length;
 }
 function renderEncTable(){
-  const fc=[...FC].filter(c=>c.hc&&c.enc>0).sort((a,b)=>b.enc-a.enc);
+  // ── Add 7: populate team filter dropdown on first render ──
+  const teamSel = document.getElementById('enc-team-filter');
+  if(teamSel && teamSel.options.length <= 1){
+    TEAMS.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t; o.textContent=t;
+      teamSel.appendChild(o);
+    });
+  }
+  const teamFilter = teamSel ? teamSel.value : '';
+
+  // Apply global FC + team filter, sorted by encounters desc
+  let fc=[...FC].filter(c=>c.hc&&c.enc>0);
+  if(teamFilter) fc=fc.filter(c=>c.bc&&c.bc.team===teamFilter);
+  fc.sort((a,b)=>b.enc-a.enc);
+
   const isBC=role==='bc';
   document.getElementById('enc-tbody').innerHTML=fc.length?fc.map((c,i)=>{
     const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
-    return `<tr><td><strong>${i+1}</strong></td><td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}</td><td class="tm">${isBC?c.bpn:'—'}</td><td>${prov}</td><td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td><td class="tm">${c.bc?c.bc.team:'—'}</td><td>${pmaBadge(c.pma)}</td><td>${verChip(c.appVer,c.onLatest)}</td><td>${pbadge(c.per)}</td><td><strong>${c.enc.toLocaleString()}</strong></td><td>${(c.enc/30).toFixed(1)}</td><td><span class="b b${c.status==='Active'?'a':c.status==='Trial'?'t':'i'}">${c.status}</span></td></tr>`;
-  }).join(''):`<tr><td colspan="10"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p><small>Try clearing the filter bar above</small></div></td></tr>`;
+    // Add 6: per-provider encounter breakdown (expandable)
+    const provBreakdown = isBC && c.provs && c.provs.length >= 1 ? `
+      <tr id="pb-${c.bpn}" style="display:none;background:rgba(247,148,29,.04)">
+        <td colspan="12" style="padding:8px 16px 12px 16px">
+          <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Treating provider breakdown · ${c.name}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${c.provs.map((p,pi)=>`<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;font-size:12px;min-width:200px;box-shadow:var(--sh)">
+              <div style="font-weight:700;margin-bottom:2px">${p.name}</div>
+              <div style="color:var(--mu);margin-bottom:6px;font-size:11px">TPN: ${p.tpn}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                ${pmaBadge(c.pma)}
+                ${verChip(c.appVer, c.onLatest)}
+                <span style="color:var(--or);font-weight:700">${p.enc||Math.round(c.enc/c.provs.length)} enc/30d</span>
+              </div>
+            </div>`).join('')}
+          </div>
+        </td>
+      </tr>` : '';
+    const hasBreakdown = isBC && c.provs && c.provs.length >= 1;
+    return `<tr style="cursor:${hasBreakdown?'pointer':'default'}" onclick="${hasBreakdown?`"const r=document.getElementById('pb-${c.bpn}');if(r)r.style.display=r.style.display==='none'?'table-row':'none'`:''}">
+      <td><strong>${i+1}</strong></td>
+      <td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}${hasBreakdown?` <span style="font-size:10px;color:var(--or)">▶ ${c.provs.length} providers</span>`:''}
+      </td>
+      <td class="tm">${isBC?c.bpn:'—'}</td>
+      <td>${prov}</td>
+      <td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td>
+      <td class="tm">${c.bc?c.bc.team:'—'}</td>
+      <td>${pmaBadge(c.pma)}</td>
+      <td>${verChip(c.appVer,c.onLatest)}</td>
+      <td>${pbadge(c.per)}</td>
+      <td><strong>${c.enc.toLocaleString()}</strong></td>
+      <td>${(c.enc/30).toFixed(1)}</td>
+      <td>${statusBadge(c.status)}</td>
+    </tr>${provBreakdown}`;
+  }).join(''):`<tr><td colspan="12"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p><small>Try clearing the filter bar above</small></div></td></tr>`;
 }
 
 // ── FEATURES ──
@@ -1427,12 +1580,139 @@ function renderFeatKPIs(){
 }
 
 // ── BC VIEW ──
+// Active provider detail panel state
+const bcProvPanels = {};
+
 function renderBCTable(){
   const isBC=role==='bc';
   document.getElementById('bv-tbody').innerHTML=FC.length?FC.map(c=>{
-    const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
-    return `<tr><td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}</td><td class="tm">${isBC?c.bpn:'—'}</td><td>${prov}</td><td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td><td class="tm">${c.bc?c.bc.team:'—'}</td><td>${pmaBadge(c.pma)}</td><td>${verChip(c.appVer,c.onLatest)}</td><td class="tm">${c.contractStart}</td><td><span class="b b${c.tier==='T1'?'t1':c.tier==='T0'?'t0':'cas'}">${c.tier}</span></td><td><span class="b b${c.status==='Active'?'a':c.status==='Trial'?'t':'i'}">${c.status}</span></td><td><strong>${c.enc.toLocaleString()}</strong></td><td>${c.feat.toLocaleString()}</td><td class="tm">${c.lastA}</td><td>${pbadge(c.per)}</td></tr>`;
-  }).join(''):`<tr><td colspan="12"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p></div></td></tr>`;
+    const uid = 'bvp-'+c.bpn;
+    const provRows = isBC ? `
+      <tr id="${uid}" style="display:none;background:rgba(119,87,236,.03)">
+        <td colspan="16" style="padding:0;border-top:2px solid rgba(119,87,236,.2)">
+          <div style="padding:10px 16px 14px 16px">
+            <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">
+              📋 Treating providers · ${c.name}
+            </div>
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+              <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--bd);border-radius:6px;overflow:hidden">
+                <thead>
+                  <tr style="background:var(--ch);color:#fff">
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Provider</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">TPN</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">PMA</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">App version</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Status</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Enc (30d)</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Feature usage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${c.provs.map((p,pi)=>`
+                    <tr style="border-bottom:1px solid var(--bd);background:${pi%2===0?'#fff':'var(--sf2)'}">
+                      <td style="padding:8px 12px;font-weight:700;white-space:nowrap">${p.name}</td>
+                      <td style="padding:8px 12px;color:var(--mu);white-space:nowrap;font-size:11px">${p.tpn}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${pmaBadge(c.pma)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${verChip(c.appVer, c.onLatest)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${statusBadge(c.status)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap;font-weight:700;color:var(--or)">${p.enc||Math.round(c.enc/c.provs.length)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">
+                        <button onclick="event.stopPropagation();openProviderFeatures('${c.bpn}','${p.tpn}','${p.name.replace(/'/g,"\\'").replace(/"/g,'')}','${c.name.replace(/'/g,"\\'").replace(/"/g,'')}')"
+                          style="background:var(--pu);color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+                          📊 View features →
+                        </button>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </tr>` : '';
+
+    return `<tr style="cursor:pointer" onclick="const r=document.getElementById('${uid}');if(r){r.style.display=r.style.display==='none'?'table-row':'none'}">
+      <td class="tn">${isBC?`${c.name} <span style="font-size:10px;color:var(--pu)">▶ ${c.provs.length} provider${c.provs.length!==1?'s':''}</span>`:'<em class="tm">Hidden</em>'}</td>
+      <td class="tm">${isBC?c.bpn:'—'}</td>
+      <td class="tm">${isBC?c.provs.map(p=>p.name).join(', '):'<em class="tm">Hidden</em>'}</td>
+      <td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td>
+      <td class="tm">${c.bc?c.bc.team:'—'}</td>
+      <td>${pmaBadge(c.pma)}</td>
+      <td>${verChip(c.appVer,c.onLatest)}</td>
+      <td class="tm">${c.contractStart}</td>
+      <td><span class="b b${c.tier==='T1'?'t1':c.tier==='T0'?'t0':'cas'}">${c.tier}</span></td>
+      <td>${statusBadge(c.status)}</td>
+      <td><strong>${c.enc.toLocaleString()}</strong></td>
+      <td>${c.feat.toLocaleString()}</td>
+      <td class="tm">${c.lastA}</td>
+      <td>${pbadge(c.per)}</td>
+    </tr>${provRows}`;
+  }).join(''):`<tr><td colspan="14"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p></div></td></tr>`;
+}
+
+// Opens a provider feature usage modal/panel
+function openProviderFeatures(bpn, tpn, provName, pracName){
+  // Find client
+  const client = CLIENTS.find(c=>String(c.bpn||'').replace(/^0+/,'')===String(bpn).replace(/^0+/,''));
+  if(!client){ alert('Client data not found for BPN: '+bpn); return; }
+
+  // Build feature breakdown from client.featureDetails if available
+  const featDetails = client.featureDetails || {};
+  const featRows = Object.entries(featDetails)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,20)
+    .map(([key,count])=>{
+      const [cat, featName] = key.split('|');
+      const col = CC[cat] || OR;
+      return `<tr>
+        <td style="padding:5px 10px;color:var(--mu);font-size:11px">${cat.replace(/^\d+\.\s*/,'')}</td>
+        <td style="padding:5px 10px;font-weight:600">${featLabel(featName)}</td>
+        <td style="padding:5px 10px;text-align:right;font-weight:700;color:${col}">${count.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+
+  // Build or reuse modal
+  let modal = document.getElementById('prov-feat-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'prov-feat-modal';
+    modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.onclick = e=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--r);max-width:680px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--ch)">${provName}</div>
+        <div style="font-size:12px;color:var(--mu);margin-top:2px">${pracName} · TPN ${tpn} · BPN ${bpn}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">${pmaBadge(client.pma)} ${verChip(client.appVer,client.onLatest)} ${statusBadge(client.status)}</div>
+      </div>
+      <button onclick="document.getElementById('prov-feat-modal').remove()" style="background:var(--sf2);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--mu)">✕</button>
+    </div>
+    <div style="padding:14px 20px 6px;border-bottom:1px solid var(--bd);display:flex;gap:20px;font-size:12px">
+      <div><strong style="color:var(--or)">${client.enc.toLocaleString()}</strong> encounters (30d)</div>
+      <div><strong style="color:var(--pu)">${client.feat.toLocaleString()}</strong> feature events</div>
+      <div><strong>${client.da||'—'}</strong> days active</div>
+      <div>${pbadge(client.per)}</div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:8px 0">
+      ${featRows ? `<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--sf2)">
+          <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Category</th>
+          <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Feature</th>
+          <th style="text-align:right;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Events</th>
+        </tr></thead>
+        <tbody>${featRows}</tbody>
+      </table>` : `<div style="padding:30px;text-align:center;color:var(--mu)">
+        <div style="font-size:24px;margin-bottom:8px">📊</div>
+        <div>Feature detail available after live data loads</div>
+        <div style="font-size:12px;margin-top:4px">Practice-level data: ${client.feat.toLocaleString()} total feature events</div>
+      </div>`}
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--bd);background:var(--sf2);font-size:11px;color:var(--mu);text-align:center">
+      Feature data shown at practice level · per-provider telemetry available via App Insights integration
+    </div>
+  </div>`;
 }
 
 // ── ANOMALIES ──
@@ -1560,9 +1840,62 @@ function initCharts(){
     {label:'7-day moving avg',data:dMA,type:'line',borderColor:BU,borderWidth:2.5,pointRadius:0,tension:0.4,fill:false},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
   // stacked
-  new Chart(document.getElementById('c-st'),{type:'line',data:{labels:D30,datasets:CATS.map((cat,ci)=>({
-    label:cat,data:dCAT[ci],backgroundColor:CC[cat]+'55',borderColor:CC[cat],borderWidth:1.5,fill:true,tension:0.3,pointRadius:0
-  }))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:8,font:{size:10},boxWidth:10}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{stacked:true,grid:G,ticks:{font:{size:10}}}}}});
+  // ── Multi-select pill buttons for the stacked chart ──────────────────────
+  const CHART_CAT_DEFAULTS = CATS.filter(c => !c.includes('Noise'));
+  let activeCats = new Set(CHART_CAT_DEFAULTS);
+  let stChart = null;
+
+  function buildStChart(){
+    const pillContainer = document.getElementById('feat-cat-pills');
+    if(pillContainer && pillContainer.children.length === 0){
+      CATS.forEach(cat => {
+        const col = CC[cat] || OR;
+        const active = activeCats.has(cat);
+        const pill = document.createElement('button');
+        pill.dataset.cat = cat;
+        pill.style.cssText = `font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid ${col};font-family:inherit;transition:all .15s;background:${active?col:'transparent'};color:${active?'#fff':col}`;
+        pill.textContent = cat.replace(/^\d+\.\s*/,'');
+        pill.onclick = () => {
+          if(activeCats.has(cat)){ activeCats.delete(cat); pill.style.background='transparent'; pill.style.color=col; }
+          else { activeCats.add(cat); pill.style.background=col; pill.style.color='#fff'; }
+          updateStChart();
+        };
+        pillContainer.appendChild(pill);
+      });
+      ['All','None'].forEach(label => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid var(--bd);background:var(--sf2);color:var(--mu);font-family:inherit';
+        btn.onclick = () => {
+          const pills = pillContainer.querySelectorAll('[data-cat]');
+          activeCats = label==='All' ? new Set(CHART_CAT_DEFAULTS) : new Set();
+          pills.forEach(p => {
+            const c = p.dataset.cat; const col = CC[c]||OR; const on = activeCats.has(c);
+            p.style.background = on ? col : 'transparent'; p.style.color = on ? '#fff' : col;
+          });
+          updateStChart();
+        };
+        pillContainer.appendChild(btn);
+      });
+    }
+    const datasets = CATS.filter(cat=>activeCats.has(cat)).map(cat=>{
+      const ci=CATS.indexOf(cat);
+      return {label:cat,data:dCAT[ci],backgroundColor:CC[cat]+'55',borderColor:CC[cat],borderWidth:1.5,fill:true,tension:0.3,pointRadius:0};
+    });
+    if(stChart) stChart.destroy();
+    stChart = new Chart(document.getElementById('c-st'),{type:'line',data:{labels:D30,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{stacked:true,grid:G,ticks:{font:{size:10}}}}}});
+  }
+
+  function updateStChart(){
+    const datasets = CATS.filter(cat=>activeCats.has(cat)).map(cat=>{
+      const ci=CATS.indexOf(cat);
+      return {label:cat,data:dCAT[ci],backgroundColor:CC[cat]+'55',borderColor:CC[cat],borderWidth:1.5,fill:true,tension:0.3,pointRadius:0};
+    });
+    if(stChart){ stChart.data.datasets=datasets; stChart.update(); }
+  }
+
+  buildStChart();
+
   // Expandable feature category bars — real data from FEATURES_MAP
   buildFeatureBars();
   // scatter
