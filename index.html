@@ -235,11 +235,12 @@ tr:hover td{background:#fafaf8;}
     <div class="role-row">
       <button class="rb active" onclick="selRole('bc',this)">BC / Manager</button>
       <button class="rb" onclick="selRole('viewer',this)">General Viewer</button>
+      <button class="rb" onclick="selRole('admin',this)" style="background:rgba(119,87,236,.15);border-color:rgba(119,87,236,.5);color:#c4b5fd">Admin</button>
     </div>
     <div class="ae" id="ae">Incorrect password — please try again.</div>
     <input class="ai" type="password" id="apwd" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="ab" onclick="doLogin()">Sign in →</button>
-    <div class="ac"><strong>Demo credentials</strong><br>BC / Manager: <strong>HbC@BC2026</strong> &nbsp;·&nbsp; Viewer: <strong>HbC@View2026</strong></div>
+    <div class="ac"><strong>BC / Manager:</strong> HbC@BC2026 &nbsp;·&nbsp; <strong>Viewer:</strong> HbC@View2026</div>
   </div>
 </div>
 
@@ -277,12 +278,27 @@ tr:hover td{background:#fafaf8;}
     <div class="sep"></div>
     <div class="fr" id="fr">Showing all 1 290 clients</div>
     <div id="live-status" style="font-size:11px;color:var(--mu);white-space:nowrap" title="Data source status"></div>
+  <!-- DATA FRESHNESS BANNER — admin-only detail strip -->
+  <div id="freshness-bar" style="display:none;background:rgba(119,87,236,.08);border-bottom:1px solid rgba(119,87,236,.2);padding:6px 20px;font-size:11px;color:var(--ch);display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+    <span style="font-weight:800;color:var(--pu);text-transform:uppercase;letter-spacing:.5px;font-size:10px">📊 Data status</span>
+    <span id="fr-refreshed">Last refresh: —</span>
+    <span id="fr-source">Source: embedded</span>
+    <span id="fr-version">Latest app version: <strong id="fr-ver">—</strong></span>
+    <span id="fr-clients">Clients enriched: —</span>
+    <span id="fr-bc">BC ownership rows: —</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--mu)">Admin view only · nightly refresh via Apps Script at 02:00 SAST</span>
+  </div>
+
   </div>
 
   <main>
 
     <!-- EXEC SUMMARY -->
     <div class="sec active" id="s-exec">
+      <div id="embedded-warning" style="background:rgba(247,148,29,.12);border:1px solid rgba(247,148,29,.5);border-radius:8px;padding:12px 16px;margin:0 0 4px 0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px;flex-shrink:0">⚠️</span>
+        <span><strong>Showing embedded sample data</strong> — figures below are illustrative only and do not reflect real usage. Open the dashboard via <strong>http://localhost:8080</strong> and sign in as Admin to load live data.</span>
+      </div>
       <div class="shdr">
         <h2>Executive summary</h2>
         <p>Manager view — all BC portfolios, team rollups, and at-risk clients. Use the filter bar above to drill into a BC or team.</p>
@@ -675,7 +691,7 @@ const BC_MAP=Object.fromEntries(BCS.map(b=>[b.name.toLowerCase(),b]));
 // ⚠️ TODO: Replace VER_LOOKUP with nightly GitHub Actions pipeline output (max appVersion per BPN).
 // Last refreshed from: FeatureAdoption_Week1.csv (week of 30 Mar – 5 Apr 2026)
 const VER_LOOKUP={"1017896":{"s":"myMPS","v":"6.44.0"},"1018663":{"s":"myMPS","v":"6.44.0"},"1023233":{"s":"myMPS","v":"6.43.0"},"1027697":{"s":"myMPS","v":"6.45.0"},"1027875":{"s":"myMPS","v":"6.44.0"},"1028073":{"s":"myMPS","v":"6.44.0"},"1029665":{"s":"myMPS","v":"6.45.0"},"1033581":{"s":"Nova","v":"6.45.0"},"1034294":{"s":"myMPS","v":"6.45.0"},"1038141":{"s":"myMPS","v":"6.45.0"},"1039822":{"s":"Nova","v":"6.44.0"},"1041800":{"s":"myMPS","v":"6.45.0"},"1044397":{"s":"Nova","v":"6.45.0"},"1045059":{"s":"myMPS","v":"6.45.0"},"1045504":{"s":"myMPS","v":"6.44.0"},"1048694":{"s":"myMPS","v":"6.45.0"},"1050087":{"s":"myMPS","v":"6.45.0"},"1052497":{"s":"myMPS","v":"6.44.0"},"1053264":{"s":"myMPS","v":"6.45.0"},"1054422":{"s":"myMPS","v":"6.45.0"},"1054724":{"s":"Nova","v":"6.44.0"},"1057561":{"s":"myMPS","v":"6.44.0"},"106100":{"s":"myMPS","v":"6.45.0"},"1062301":{"s":"myMPS","v":"6.44.0"},"1064665":{"s":"myMPS","v":"6.44.0"},"106607":{"s":"Nova","v":"6.45.0"},"1066498":{"s":"myMPS","v":"6.45.0"},"1066714":{"s":"myMPS","v":"6.45.0"},"106682":{"s":"myMPS","v":"6.45.0"},"106720":{"s":"myMPS","v":"6.45.0"},"1069799":{"s":"myMPS","v":"6.44.0"},"1070827":{"s":"myMPS","v":"6.45.0"},"1071211":{"s":"myMPS","v":"6.45.0"},"1071262":{"s":"myMPS","v":"6.44.0"},"1074415":{"s":"myMPS","v":"6.45.0"},"1074792":{"s":"myMPS","v":"6.45.0"},"1074881":{"s":"myMPS","v":"6.44.0"},"1075691":{"s":"myMPS","v":"6.45.0"},"1076280":{"s":"myMPS","v":"6.45.0"},"1076663":{"s":"myMPS","v":"6.45.0"},"1077449":{"s":"myMPS","v":"6.44.0"},"1077791":{"s":"myMPS","v":"6.44.0"},"1078933":{"s":"Nova","v":"6.45.0"},"1080350":{"s":"myMPS","v":"6.45.0"},"1080385":{"s":"myMPS","v":"6.45.0"},"1084127":{"s":"myMPS","v":"6.44.0"},"1084968":{"s":"myMPS","v":"6.42.0"},"1085816":{"s":"myMPS","v":"6.45.0"},"1088343":{"s":"myMPS","v":"6.45.0"},"1088599":{"s":"myMPS","v":"6.45.0"},"1089617":{"s":"myMPS","v":"6.44.0"},"1089706":{"s":"myMPS","v":"6.45.0"},"1089749":{"s":"myMPS","v":"6.44.0"},"1091212":{"s":"Nova","v":"6.44.0"},"1091662":{"s":"myMPS","v":"6.44.0"},"1093142":{"s":"myMPS","v":"6.44.0"},"1095730":{"s":"Nova","v":"6.45.0"},"1095811":{"s":"myMPS","v":"6.44.0"},"1096354":{"s":"Nova","v":"6.45.0"},"1098667":{"s":"myMPS","v":"6.45.0"},"1099604":{"s":"myMPS","v":"6.44.0"},"1101269":{"s":"myMPS","v":"6.44.0"},"1102052":{"s":"myMPS","v":"6.44.0"},"1104187":{"s":"Nova","v":"6.43.0"},"1106627":{"s":"myMPS","v":"6.37.0"},"1107011":{"s":"myMPS","v":"6.45.0"},"1108263":{"s":"myMPS","v":"6.44.0"},"1108751":{"s":"myMPS","v":"6.44.0"},"1110012":{"s":"myMPS","v":"6.45.0"},"1113607":{"s":"Nova","v":"6.45.0"},"1114700":{"s":"myMPS","v":"6.45.0"},"1116045":{"s":"myMPS","v":"6.45.0"},"1116088":{"s":"myMPS","v":"6.45.0"},"1116169":{"s":"myMPS","v":"6.43.0"},"1118250":{"s":"myMPS","v":"6.43.0"},"1118978":{"s":"myMPS","v":"6.43.0"},"1129473":{"s":"myMPS","v":"6.45.0"},"1132679":{"s":"myMPS","v":"6.44.0"},"1136461":{"s":"myMPS","v":"6.45.0"},"1137174":{"s":"myMPS","v":"6.45.0"},"1137824":{"s":"myMPS","v":"6.45.0"},"1140663":{"s":"myMPS","v":"6.44.0"},"1141554":{"s":"myMPS","v":"6.45.0"},"1141732":{"s":"myMPS","v":"6.44.0"},"1145037":{"s":"myMPS","v":"6.45.0"},"1147455":{"s":"Nova","v":"6.45.0"},"1149687":{"s":"myMPS","v":"6.44.0"},"1151371":{"s":"Nova","v":"6.44.0"},"1152130":{"s":"myMPS","v":"6.44.0"},"1152424":{"s":"myMPS","v":"6.45.0"},"1155326":{"s":"myMPS","v":"6.45.0"},"1155407":{"s":"myMPS","v":"6.44.0"},"1155997":{"s":"myMPS","v":"6.44.0"},"1161288":{"s":"myMPS","v":"6.45.0"},"1163019":{"s":"myMPS","v":"6.45.0"},"1165771":{"s":"myMPS","v":"6.45.0"},"1169270":{"s":"myMPS","v":"6.44.0"},"1169866":{"s":"myMPS","v":"6.44.0"},"1170333":{"s":"myMPS","v":"6.45.0"},"1173073":{"s":"myMPS","v":"6.45.0"},"1173790":{"s":"Nova","v":"6.45.0"},"1174312":{"s":"myMPS","v":"6.45.0"},"1174517":{"s":"Nova","v":"6.45.0"},"1176730":{"s":"myMPS","v":"6.44.0"},"1179179":{"s":"myMPS","v":"6.45.0"},"1181408":{"s":"myMPS","v":"6.45.0"},"1183494":{"s":"myMPS","v":"6.45.0"},"1184873":{"s":"myMPS","v":"6.45.0"},"1185713":{"s":"myMPS","v":"6.45.0"},"1187139":{"s":"myMPS","v":"6.44.0"},"1188623":{"s":"myMPS","v":"6.45.0"},"1188771":{"s":"myMPS","v":"6.45.0"},"1189077":{"s":"Nova","v":"6.45.0"},"1191349":{"s":"myMPS","v":"6.44.0"},"1194380":{"s":"myMPS","v":"6.45.0"},"1194828":{"s":"myMPS","v":"6.45.0"},"1198408":{"s":"myMPS","v":"6.44.0"},"1198939":{"s":"myMPS","v":"6.44.0"},"1201158":{"s":"myMPS","v":"6.45.0"},"1201751":{"s":"myMPS","v":"6.45.0"},"1202529":{"s":"Nova","v":"6.44.0"},"1203932":{"s":"myMPS","v":"6.45.0"},"1204483":{"s":"myMPS","v":"6.45.0"},"1204696":{"s":"Nova","v":"6.44.0"},"1205935":{"s":"myMPS","v":"6.45.0"},"1206842":{"s":"myMPS","v":"6.45.0"},"1208926":{"s":"myMPS","v":"6.45.0"},"1209140":{"s":"myMPS","v":"6.44.0"},"1209264":{"s":"myMPS","v":"6.44.0"},"1210920":{"s":"myMPS","v":"6.41.1"},"1212605":{"s":"Nova","v":"6.45.0"},"1213644":{"s":"myMPS","v":"6.45.0"},"1215140":{"s":"myMPS","v":"6.45.0"},"1220004":{"s":"myMPS","v":"6.43.0"},"1220039":{"s":"Nova","v":"6.44.0"},"1221795":{"s":"myMPS","v":"6.44.0"},"1222228":{"s":"Nova","v":"6.44.0"},"1222759":{"s":"myMPS","v":"6.45.0"},"1223143":{"s":"myMPS","v":"6.45.0"},"1223186":{"s":"Nova","v":"6.44.0"},"1223518":{"s":"myMPS","v":"6.44.0"},"1223879":{"s":"Nova","v":"6.44.0"},"1226010":{"s":"myMPS","v":"6.44.0"},"1227580":{"s":"myMPS","v":"6.44.0"},"1228560":{"s":"myMPS","v":"6.45.0"},"122939":{"s":"myMPS","v":"6.45.0"},"1229435":{"s":"Nova","v":"6.45.0"},"1230000":{"s":"myMPS","v":"6.45.0"},"1230891":{"s":"Nova","v":"6.45.0"},"123102":{"s":"Nova","v":"6.45.0"},"1231111":{"s":"Nova","v":"6.45.0"},"1231855":{"s":"myMPS","v":"6.43.0"},"1232096":{"s":"myMPS","v":"6.45.0"},"1232118":{"s":"myMPS","v":"6.45.0"},"1232169":{"s":"myMPS","v":"6.45.0"},"1232932":{"s":"myMPS","v":"6.45.0"},"1237284":{"s":"Nova","v":"6.45.0"},"1238361":{"s":"Nova","v":"6.44.0"},"1241214":{"s":"Nova","v":"6.45.0"},"1241303":{"s":"myMPS","v":"6.44.0"},"1241540":{"s":"Nova","v":"6.45.0"},"1241907":{"s":"myMPS","v":"6.45.0"},"1243950":{"s":"myMPS","v":"6.45.0"},"1246437":{"s":"myMPS","v":"6.44.0"},"124702":{"s":"Nova","v":"6.45.0"},"1249762":{"s":"myMPS","v":"6.44.0"},"1250329":{"s":"myMPS","v":"6.45.0"},"1253638":{"s":"Nova","v":"6.45.0"},"1256572":{"s":"Nova","v":"6.44.0"},"1256785":{"s":"Nova","v":"6.44.0"},"1257471":{"s":"myMPS","v":"6.45.0"},"1261525":{"s":"myMPS","v":"6.45.0"},"1262416":{"s":"myMPS","v":"6.44.0"},"1262483":{"s":"Nova","v":"6.43.0"},"1263366":{"s":"myMPS","v":"6.45.0"},"1265814":{"s":"Nova","v":"6.45.0"},"1265865":{"s":"myMPS","v":"6.45.0"},"1266373":{"s":"myMPS","v":"6.45.0"},"1267566":{"s":"myMPS","v":"6.44.0"},"1270168":{"s":"Nova","v":"6.42.0"},"1270575":{"s":"myMPS","v":"6.44.0"},"1271067":{"s":"myMPS","v":"6.44.0"},"1272535":{"s":"Nova","v":"6.44.0"},"1273957":{"s":"myMPS","v":"6.44.0"},"1274112":{"s":"myMPS","v":"6.44.0"},"1274244":{"s":"myMPS","v":"6.44.0"},"1274252":{"s":"myMPS","v":"6.45.0"},"1274295":{"s":"Nova","v":"6.45.0"},"1274627":{"s":"myMPS","v":"6.45.0"},"1274686":{"s":"Nova","v":"6.44.0"},"1278746":{"s":"myMPS","v":"6.45.0"},"127965":{"s":"Nova","v":"6.45.0"},"1279963":{"s":"myMPS","v":"6.44.0"},"1282743":{"s":"myMPS","v":"6.45.0"},"1283057":{"s":"myMPS","v":"6.44.0"},"1283979":{"s":"myMPS","v":"6.44.0"},"128422":{"s":"myMPS","v":"6.44.0"},"1285092":{"s":"myMPS","v":"6.45.0"},"1286706":{"s":"Nova","v":"6.45.0"},"1287230":{"s":"Nova","v":"6.45.0"},"1287281":{"s":"myMPS","v":"6.44.0"},"1288032":{"s":"Nova","v":"6.45.0"},"1288245":{"s":"myMPS","v":"6.44.0"},"128880":{"s":"myMPS","v":"6.44.0"},"1289136":{"s":"myMPS","v":"6.45.0"},"1290185":{"s":"myMPS","v":"6.45.0"},"1290762":{"s":"myMPS","v":"6.45.0"},"1291408":{"s":"myMPS","v":"6.44.0"},"1293745":{"s":"Nova","v":"6.45.0"},"1293966":{"s":"myMPS","v":"6.45.0"},"1295195":{"s":"myMPS","v":"6.45.0"},"1297503":{"s":"Nova","v":"6.45.0"},"1297848":{"s":"Nova","v":"6.45.0"},"1298135":{"s":"Nova","v":"6.44.0"},"1298488":{"s":"myMPS","v":"6.45.0"},"1298852":{"s":"myMPS","v":"6.44.0"},"1298933":{"s":"myMPS","v":"6.44.0"},"1299506":{"s":"myMPS","v":"6.44.0"},"1299581":{"s":"myMPS","v":"6.44.0"},"1299719":{"s":"Nova","v":"6.45.0"},"1299875":{"s":"myMPS","v":"6.44.0"},"1307460":{"s":"myMPS","v":"6.44.0"},"1307746":{"s":"Nova","v":"6.45.0"},"1308491":{"s":"Nova","v":"6.45.0"},"1309846":{"s":"Nova","v":"6.44.0"},"1311263":{"s":"myMPS","v":"6.44.0"},"1311557":{"s":"myMPS","v":"6.44.0"},"1312227":{"s":"myMPS","v":"6.44.0"},"1313185":{"s":"Nova","v":"6.45.0"},"1315285":{"s":"myMPS","v":"6.45.0"},"1317423":{"s":"myMPS","v":"6.45.0"},"1317687":{"s":"myMPS","v":"6.44.0"},"1320297":{"s":"Nova","v":"6.45.0"},"133507":{"s":"myMPS","v":"6.44.0"},"1404644":{"s":"Nova","v":"6.44.0"},"1408097":{"s":"myMPS","v":"6.45.0"},"1408569":{"s":"Nova","v":"6.45.0"},"1410210":{"s":"myMPS","v":"6.45.0"},"1417053":{"s":"myMPS","v":"6.45.0"},"1425153":{"s":"myMPS","v":"6.45.0"},"1426265":{"s":"myMPS","v":"6.45.0"},"1428136":{"s":"myMPS","v":"6.45.0"},"1429027":{"s":"myMPS","v":"6.44.0"},"1434578":{"s":"myMPS","v":"6.43.0"},"1435086":{"s":"myMPS","v":"6.45.0"},"1445952":{"s":"myMPS","v":"6.45.0"},"1449443":{"s":"myMPS","v":"6.45.0"},"1453912":{"s":"myMPS","v":"6.45.0"},"1454897":{"s":"myMPS","v":"6.44.0"},"146099":{"s":"myMPS","v":"6.45.0"},"1461524":{"s":"myMPS","v":"6.44.0"},"1462687":{"s":"myMPS","v":"6.45.0"},"1465287":{"s":"myMPS","v":"6.44.0"},"1466194":{"s":"Nova","v":"6.44.0"},"147346":{"s":"myMPS","v":"6.44.0"},"1480170":{"s":"myMPS","v":"6.45.0"},"1483153":{"s":"Nova","v":"6.44.0"},"1485571":{"s":"myMPS","v":"6.45.0"},"1485830":{"s":"myMPS","v":"6.44.0"},"1487779":{"s":"Nova","v":"6.45.0"},"1488538":{"s":"myMPS","v":"6.44.0"},"1493981":{"s":"myMPS","v":"6.44.0"},"1498533":{"s":"myMPS","v":"6.45.0"},"1498770":{"s":"myMPS","v":"6.45.0"},"1501542":{"s":"myMPS","v":"6.45.0"},"15016":{"s":"myMPS","v":"6.44.0"},"1503529":{"s":"myMPS","v":"6.45.0"},"1509489":{"s":"Nova","v":"6.45.0"},"1509985":{"s":"myMPS","v":"6.45.0"},"1512005":{"s":"myMPS","v":"6.45.0"},"1512234":{"s":"Nova","v":"6.45.0"},"1513435":{"s":"myMPS","v":"6.44.0"},"1515136":{"s":"myMPS","v":"6.45.0"},"1515543":{"s":"myMPS","v":"6.45.0"},"1519492":{"s":"myMPS","v":"6.44.0"},"1519506":{"s":"myMPS","v":"6.44.0"},"1521977":{"s":"myMPS","v":"6.45.0"},"1523325":{"s":"myMPS","v":"6.45.0"},"1523856":{"s":"myMPS","v":"6.45.0"},"1526278":{"s":"myMPS","v":"6.44.0"},"1528718":{"s":"Nova","v":"6.45.0"},"1529358":{"s":"myMPS","v":"6.45.0"},"1530143":{"s":"myMPS","v":"6.45.0"},"1531735":{"s":"myMPS","v":"6.45.0"},"1532065":{"s":"myMPS","v":"6.44.0"},"1538578":{"s":"myMPS","v":"6.45.0"},"1540785":{"s":"myMPS","v":"6.44.0"},"154199":{"s":"myMPS","v":"6.44.0"},"154342":{"s":"myMPS","v":"6.45.0"},"1544640":{"s":"myMPS","v":"6.44.0"},"1545191":{"s":"myMPS","v":"6.45.0"},"1545876":{"s":"myMPS","v":"6.44.0"},"154679":{"s":"myMPS","v":"6.45.0"},"1548085":{"s":"myMPS","v":"6.45.0"},"1548840":{"s":"myMPS","v":"6.44.0"},"1550101":{"s":"myMPS","v":"6.45.0"},"1550578":{"s":"Nova","v":"6.45.0"},"1550756":{"s":"Nova","v":"6.44.0"},"1551426":{"s":"myMPS","v":"6.44.0"},"1553461":{"s":"myMPS","v":"6.45.0"},"1554255":{"s":"myMPS","v":"6.45.0"},"1555685":{"s":"myMPS","v":"6.44.0"},"1557335":{"s":"myMPS","v":"6.45.0"},"1557769":{"s":"myMPS","v":"6.44.0"},"1558218":{"s":"Nova","v":"6.44.0"},"1558226":{"s":"myMPS","v":"6.45.0"},"1559958":{"s":"myMPS","v":"6.45.0"},"1560409":{"s":"myMPS","v":"6.45.0"},"1561715":{"s":"Nova","v":"6.45.0"},"1562746":{"s":"myMPS","v":"6.45.0"},"1563718":{"s":"Nova","v":"6.45.0"},"1564161":{"s":"Nova","v":"6.45.0"},"1565451":{"s":"myMPS","v":"6.45.0"},"1567918":{"s":"myMPS","v":"6.44.0"},"1568590":{"s":"myMPS","v":"6.45.0"},"1569511":{"s":"myMPS","v":"6.45.0"},"1570595":{"s":"myMPS","v":"6.45.0"},"1573713":{"s":"myMPS","v":"6.45.0"},"157503":{"s":"myMPS","v":"6.44.0"},"1575813":{"s":"Nova","v":"6.44.0"},"1575988":{"s":"myMPS","v":"6.45.0"},"1577093":{"s":"myMPS","v":"6.45.0"},"1577905":{"s":"myMPS","v":"6.45.0"},"1578618":{"s":"myMPS","v":"6.45.0"},"1583271":{"s":"myMPS","v":"6.44.0"},"1583506":{"s":"myMPS","v":"6.44.0"},"1584219":{"s":"myMPS","v":"6.45.0"},"1584790":{"s":"myMPS","v":"6.44.0"},"1585134":{"s":"myMPS","v":"6.45.0"},"1586297":{"s":"myMPS","v":"6.45.0"},"1586327":{"s":"myMPS","v":"6.45.0"},"1586432":{"s":"myMPS","v":"6.44.0"},"158682":{"s":"myMPS","v":"6.45.0"},"1605348":{"s":"myMPS","v":"6.45.0"},"1608029":{"s":"myMPS","v":"6.44.0"},"1608096":{"s":"myMPS","v":"6.45.0"},"164690":{"s":"Nova","v":"6.44.0"},"167401":{"s":"myMPS","v":"6.45.0"},"169374":{"s":"myMPS","v":"6.45.0"},"172189":{"s":"myMPS","v":"6.45.0"},"175250":{"s":"myMPS","v":"6.45.0"},"176788":{"s":"myMPS","v":"6.45.0"},"177865":{"s":"myMPS","v":"6.44.0"},"1806033":{"s":"myMPS","v":"6.45.0"},"180696":{"s":"myMPS","v":"6.45.0"},"1809458":{"s":"myMPS","v":"6.45.0"},"183172":{"s":"myMPS","v":"6.44.0"},"189529":{"s":"myMPS","v":"6.44.0"},"1900072":{"s":"myMPS","v":"6.44.0"},"191647":{"s":"myMPS","v":"6.45.0"},"192120":{"s":"myMPS","v":"6.44.0"},"199915":{"s":"myMPS","v":"6.45.0"},"200247":{"s":"myMPS","v":"6.44.0"},"20397":{"s":"Nova","v":"6.44.0"},"209759":{"s":"myMPS","v":"6.44.0"},"20990":{"s":"myMPS","v":"6.45.0"},"2100541":{"s":"myMPS","v":"6.44.0"},"213101":{"s":"myMPS","v":"6.45.0"},"213519":{"s":"myMPS","v":"6.44.0"},"215481":{"s":"myMPS","v":"6.44.0"},"217840":{"s":"myMPS","v":"6.45.0"},"219223":{"s":"myMPS","v":"6.44.0"},"2202263":{"s":"myMPS","v":"6.44.0"},"2205874":{"s":"myMPS","v":"6.44.0"},"222968":{"s":"myMPS","v":"6.44.0"},"230502":{"s":"Nova","v":"6.45.0"},"247219":{"s":"Nova","v":"6.45.0"},"247251":{"s":"Nova","v":"6.45.0"},"247634":{"s":"myMPS","v":"6.45.0"},"249467":{"s":"myMPS","v":"6.45.0"},"250066":{"s":"myMPS","v":"6.45.0"},"251860":{"s":"myMPS","v":"6.44.0"},"256471":{"s":"Nova","v":"6.44.0"},"257001":{"s":"myMPS","v":"6.45.0"},"261270":{"s":"myMPS","v":"6.45.0"},"263567":{"s":"Nova","v":"6.45.0"},"267341":{"s":"myMPS","v":"6.44.0"},"267856":{"s":"myMPS","v":"6.44.0"},"269441":{"s":"Nova","v":"6.45.0"},"274232":{"s":"Nova","v":"6.43.0"},"274283":{"s":"Nova","v":"6.44.0"},"275476":{"s":"myMPS","v":"6.44.0"},"275646":{"s":"myMPS","v":"6.44.0"},"279846":{"s":"myMPS","v":"6.45.0"},"282081":{"s":"myMPS","v":"6.45.0"},"286478":{"s":"myMPS","v":"6.44.0"},"286907":{"s":"myMPS","v":"6.45.0"},"287881":{"s":"myMPS","v":"6.45.0"},"288101":{"s":"myMPS","v":"6.44.0"},"288160":{"s":"myMPS","v":"6.44.0"},"291080":{"s":"myMPS","v":"6.44.0"},"296279":{"s":"Nova","v":"6.44.0"},"296511":{"s":"myMPS","v":"6.44.0"},"298441":{"s":"myMPS","v":"6.45.0"},"29890":{"s":"myMPS","v":"6.44.0"},"299618":{"s":"myMPS","v":"6.45.0"},"301469":{"s":"myMPS","v":"6.45.0"},"301698":{"s":"Nova","v":"6.45.0"},"30333":{"s":"myMPS","v":"6.45.0"},"311952":{"s":"myMPS","v":"6.44.0"},"31534":{"s":"myMPS","v":"6.44.0"},"3202720":{"s":"myMPS","v":"6.44.0"},"320625":{"s":"myMPS","v":"6.44.0"},"321753":{"s":"myMPS","v":"6.45.0"},"32441":{"s":"myMPS","v":"6.45.0"},"325155":{"s":"Nova","v":"6.45.0"},"325341":{"s":"myMPS","v":"6.45.0"},"327123":{"s":"myMPS","v":"6.45.0"},"331236":{"s":"myMPS","v":"6.45.0"},"33170":{"s":"myMPS","v":"6.45.0"},"335770":{"s":"myMPS","v":"6.44.0"},"33952":{"s":"myMPS","v":"6.45.0"},"340936":{"s":"myMPS","v":"6.45.0"},"34142":{"s":"myMPS","v":"6.45.0"},"341657":{"s":"myMPS","v":"6.44.0"},"341711":{"s":"myMPS","v":"6.45.0"},"34266":{"s":"myMPS","v":"6.44.0"},"345032":{"s":"Nova","v":"6.44.0"},"347183":{"s":"myMPS","v":"6.45.0"},"347663":{"s":"myMPS","v":"6.44.0"},"353507":{"s":"myMPS","v":"6.44.0"},"355607":{"s":"myMPS","v":"6.44.0"},"357294":{"s":"myMPS","v":"6.45.0"},"361178":{"s":"Nova","v":"6.44.0"},"361488":{"s":"myMPS","v":"6.44.0"},"362034":{"s":"Nova","v":"6.44.0"},"363510":{"s":"myMPS","v":"6.45.0"},"364525":{"s":"myMPS","v":"6.45.0"},"364800":{"s":"myMPS","v":"6.45.0"},"365734":{"s":"myMPS","v":"6.45.0"},"365742":{"s":"myMPS","v":"6.45.0"},"367672":{"s":"myMPS","v":"6.44.0"},"371866":{"s":"myMPS","v":"6.44.0"},"37338":{"s":"myMPS","v":"6.45.0"},"376620":{"s":"myMPS","v":"6.45.0"},"377554":{"s":"myMPS","v":"6.42.0"},"380199":{"s":"myMPS","v":"6.44.0"},"381195":{"s":"myMPS","v":"6.45.0"},"381535":{"s":"myMPS","v":"6.44.0"},"38903":{"s":"myMPS","v":"6.44.0"},"389366":{"s":"myMPS","v":"6.45.0"},"39381":{"s":"myMPS","v":"6.45.0"},"394904":{"s":"myMPS","v":"6.45.0"},"396702":{"s":"myMPS","v":"6.45.0"},"397253":{"s":"myMPS","v":"6.44.0"},"404357":{"s":"myMPS","v":"6.45.0"},"406481":{"s":"myMPS","v":"6.44.0"},"407356":{"s":"myMPS","v":"6.44.0"},"408999":{"s":"myMPS","v":"6.43.0"},"410837":{"s":"myMPS","v":"6.45.0"},"412295":{"s":"Nova","v":"6.44.0"},"415421":{"s":"myMPS","v":"6.45.0"},"416487":{"s":"myMPS","v":"6.45.0"},"416495":{"s":"myMPS","v":"6.44.0"},"418366":{"s":"myMPS","v":"6.44.0"},"421979":{"s":"myMPS","v":"6.45.0"},"426334":{"s":"myMPS","v":"6.45.0"},"428752":{"s":"myMPS","v":"6.44.0"},"430005":{"s":"myMPS","v":"6.45.0"},"435481":{"s":"myMPS","v":"6.45.0"},"435813":{"s":"myMPS","v":"6.44.0"},"43699":{"s":"myMPS","v":"6.44.0"},"438715":{"s":"myMPS","v":"6.45.0"},"438936":{"s":"Nova","v":"6.45.0"},"443018":{"s":"myMPS","v":"6.43.0"},"443530":{"s":"myMPS","v":"6.45.0"},"448036":{"s":"myMPS","v":"6.44.0"},"448257":{"s":"myMPS","v":"6.45.0"},"448869":{"s":"myMPS","v":"6.45.0"},"451819":{"s":"Nova","v":"6.45.0"},"453323":{"s":"myMPS","v":"6.45.0"},"453439":{"s":"myMPS","v":"6.43.0"},"454192":{"s":"myMPS","v":"6.45.0"},"45586":{"s":"myMPS","v":"6.45.0"},"457264":{"s":"myMPS","v":"6.44.0"},"459712":{"s":"myMPS","v":"6.45.0"},"459925":{"s":"myMPS","v":"6.44.0"},"463698":{"s":"myMPS","v":"6.45.0"},"464872":{"s":"myMPS","v":"6.44.0"},"467669":{"s":"myMPS","v":"6.45.0"},"468827":{"s":"myMPS","v":"6.44.0"},"469351":{"s":"myMPS","v":"6.45.0"},"469726":{"s":"myMPS","v":"6.45.0"},"469963":{"s":"Nova","v":"6.44.0"},"470848":{"s":"myMPS","v":"6.45.0"},"477788":{"s":"myMPS","v":"6.44.0"},"479381":{"s":"myMPS","v":"6.45.0"},"480169":{"s":"myMPS","v":"6.44.0"},"481122":{"s":"myMPS","v":"6.45.0"},"482633":{"s":"myMPS","v":"6.44.0"},"488550":{"s":"myMPS","v":"6.45.0"},"488895":{"s":"myMPS","v":"6.45.0"},"489301":{"s":"myMPS","v":"6.45.0"},"491993":{"s":"myMPS","v":"6.45.0"},"496286":{"s":"Nova","v":"6.45.0"},"496669":{"s":"myMPS","v":"6.44.0"},"497754":{"s":"myMPS","v":"6.45.0"},"498211":{"s":"myMPS","v":"6.45.0"},"498866":{"s":"myMPS","v":"6.45.0"},"50024":{"s":"myMPS","v":"6.44.0"},"501980":{"s":"myMPS","v":"6.45.0"},"506753":{"s":"myMPS","v":"6.44.0"},"509450":{"s":"myMPS","v":"6.45.0"},"509787":{"s":"myMPS","v":"6.44.0"},"512575":{"s":"myMPS","v":"6.45.0"},"520055":{"s":"myMPS","v":"6.44.0"},"524050":{"s":"myMPS","v":"6.44.0"},"525901":{"s":"Nova","v":"6.44.0"},"526622":{"s":"Nova","v":"6.45.0"},"528927":{"s":"myMPS","v":"6.45.0"},"529362":{"s":"Nova","v":"6.44.0"},"533319":{"s":"myMPS","v":"6.44.0"},"534285":{"s":"myMPS","v":"6.44.0"},"535346":{"s":"myMPS","v":"6.45.0"},"535729":{"s":"myMPS","v":"6.45.0"},"537381":{"s":"myMPS","v":"6.45.0"},"537586":{"s":"myMPS","v":"6.45.0"},"537926":{"s":"myMPS","v":"6.45.0"},"539481":{"s":"myMPS","v":"6.45.0"},"544647":{"s":"myMPS","v":"6.44.0"},"548081":{"s":"myMPS","v":"6.44.0"},"549827":{"s":"myMPS","v":"6.44.0"},"551600":{"s":"Nova","v":"6.45.0"},"552941":{"s":"myMPS","v":"6.44.0"},"555649":{"s":"myMPS","v":"6.45.0"},"557757":{"s":"myMPS","v":"6.44.0"},"558613":{"s":"myMPS","v":"6.45.0"},"559032":{"s":"myMPS","v":"6.44.0"},"561703":{"s":"myMPS","v":"6.45.0"},"567493":{"s":"myMPS","v":"6.45.0"},"567663":{"s":"myMPS","v":"6.45.0"},"57355":{"s":"myMPS","v":"6.45.0"},"574244":{"s":"myMPS","v":"6.44.0"},"577030":{"s":"myMPS","v":"6.44.0"},"579742":{"s":"myMPS","v":"6.44.0"},"579920":{"s":"myMPS","v":"6.45.0"},"581585":{"s":"Nova","v":"6.45.0"},"581607":{"s":"myMPS","v":"6.44.0"},"581933":{"s":"Nova","v":"6.44.0"},"583421":{"s":"myMPS","v":"6.45.0"},"58602":{"s":"myMPS","v":"6.45.0"},"586684":{"s":"myMPS","v":"6.45.0"},"592838":{"s":"myMPS","v":"6.44.0"},"594695":{"s":"myMPS","v":"6.45.0"},"604143":{"s":"myMPS","v":"6.45.0"},"605360":{"s":"myMPS","v":"6.44.0"},"605425":{"s":"myMPS","v":"6.45.0"},"605972":{"s":"myMPS","v":"6.44.0"},"606707":{"s":"myMPS","v":"6.45.0"},"609404":{"s":"myMPS","v":"6.45.0"},"610062":{"s":"myMPS","v":"6.44.0"},"611166":{"s":"myMPS","v":"6.45.0"},"613088":{"s":"Nova","v":"6.45.0"},"613657":{"s":"myMPS","v":"6.45.0"},"614270":{"s":"myMPS","v":"6.44.0"},"615641":{"s":"myMPS","v":"6.45.0"},"616028":{"s":"myMPS","v":"6.45.0"},"616176":{"s":"myMPS","v":"6.45.0"},"617083":{"s":"myMPS","v":"6.45.0"},"625310":{"s":"myMPS","v":"6.45.0"},"625329":{"s":"myMPS","v":"6.45.0"},"625833":{"s":"myMPS","v":"6.44.0"},"626589":{"s":"myMPS","v":"6.45.0"},"627771":{"s":"myMPS","v":"6.44.0"},"630527":{"s":"myMPS","v":"6.45.0"},"632554":{"s":"myMPS","v":"6.45.0"},"633143":{"s":"myMPS","v":"6.44.0"},"633313":{"s":"myMPS","v":"6.43.0"},"633488":{"s":"myMPS","v":"6.45.0"},"634379":{"s":"myMPS","v":"6.44.0"},"634565":{"s":"myMPS","v":"6.45.0"},"635227":{"s":"myMPS","v":"6.44.0"},"636118":{"s":"myMPS","v":"6.45.0"},"637955":{"s":"Nova","v":"6.44.0"},"640328":{"s":"Nova","v":"6.44.0"},"640654":{"s":"myMPS","v":"6.44.0"},"645419":{"s":"myMPS","v":"6.45.0"},"647837":{"s":"myMPS","v":"6.45.0"},"650714":{"s":"myMPS","v":"6.44.0"},"651583":{"s":"myMPS","v":"6.45.0"},"651966":{"s":"Nova","v":"6.44.0"},"652849":{"s":"myMPS","v":"6.44.0"},"652903":{"s":"Nova","v":"6.44.0"},"654698":{"s":"myMPS","v":"6.44.0"},"654701":{"s":"Nova","v":"6.45.0"},"657298":{"s":"myMPS","v":"6.45.0"},"657441":{"s":"Nova","v":"6.45.0"},"657514":{"s":"myMPS","v":"6.43.0"},"663131":{"s":"myMPS","v":"6.44.0"},"663409":{"s":"myMPS","v":"6.44.0"},"664235":{"s":"myMPS","v":"6.45.0"},"666939":{"s":"myMPS","v":"6.45.0"},"667498":{"s":"myMPS","v":"6.45.0"},"668818":{"s":"myMPS","v":"6.45.0"},"671479":{"s":"myMPS","v":"6.45.0"},"673676":{"s":"Nova","v":"6.44.0"},"677795":{"s":"myMPS","v":"6.45.0"},"678813":{"s":"myMPS","v":"6.44.0"},"679585":{"s":"myMPS","v":"6.44.0"},"682152":{"s":"myMPS","v":"6.44.0"},"682438":{"s":"myMPS","v":"6.44.0"},"682829":{"s":"myMPS","v":"6.45.0"},"684031":{"s":"myMPS","v":"6.44.0"},"684449":{"s":"Nova","v":"6.44.0"},"688037":{"s":"myMPS","v":"6.43.0"},"689165":{"s":"myMPS","v":"6.45.0"},"692336":{"s":"myMPS","v":"6.45.0"},"693391":{"s":"Nova","v":"6.45.0"},"693677":{"s":"myMPS","v":"6.43.0"},"694525":{"s":"myMPS","v":"6.45.0"},"69582":{"s":"myMPS","v":"6.45.0"},"69604":{"s":"myMPS","v":"6.45.0"},"69612":{"s":"myMPS","v":"6.45.0"},"697710":{"s":"myMPS","v":"6.44.0"},"700061":{"s":"myMPS","v":"6.45.0"},"700711":{"s":"myMPS","v":"6.45.0"},"702897":{"s":"myMPS","v":"6.45.0"},"705063":{"s":"myMPS","v":"6.45.0"},"710512":{"s":"Nova","v":"6.45.0"},"712728":{"s":"myMPS","v":"6.45.0"},"713120":{"s":"myMPS","v":"6.44.0"},"71374":{"s":"myMPS","v":"6.45.0"},"713856":{"s":"myMPS","v":"6.45.0"},"714925":{"s":"myMPS","v":"6.44.0"},"715042":{"s":"myMPS","v":"6.45.0"},"715441":{"s":"myMPS","v":"6.44.0"},"717401":{"s":"myMPS","v":"6.44.0"},"718572":{"s":"myMPS","v":"6.44.0"},"718920":{"s":"myMPS","v":"6.45.0"},"720550":{"s":"myMPS","v":"6.45.0"},"720623":{"s":"myMPS","v":"6.45.0"},"72184":{"s":"myMPS","v":"6.45.0"},"7218613":{"s":"myMPS","v":"6.44.0"},"722073":{"s":"Nova","v":"6.44.0"},"722758":{"s":"myMPS","v":"6.45.0"},"7230605":{"s":"myMPS","v":"6.44.0"},"725102":{"s":"myMPS","v":"6.44.0"},"725331":{"s":"myMPS","v":"6.44.0"},"728233":{"s":"myMPS","v":"6.45.0"},"728306":{"s":"myMPS","v":"6.45.0"},"728365":{"s":"myMPS","v":"6.45.0"},"729167":{"s":"Nova","v":"6.44.0"},"730211":{"s":"myMPS","v":"6.44.0"},"732230":{"s":"myMPS","v":"6.45.0"},"732354":{"s":"myMPS","v":"6.44.0"},"733490":{"s":"myMPS","v":"6.44.0"},"73490":{"s":"Nova","v":"6.45.0"},"739936":{"s":"Nova","v":"6.45.0"},"741205":{"s":"myMPS","v":"6.45.0"},"741701":{"s":"myMPS","v":"6.44.0"},"742139":{"s":"myMPS","v":"6.44.0"},"742333":{"s":"myMPS","v":"6.45.0"},"742864":{"s":"myMPS","v":"6.40.1"},"743259":{"s":"myMPS","v":"6.44.0"},"743283":{"s":"myMPS","v":"6.44.0"},"745766":{"s":"myMPS","v":"6.44.0"},"747718":{"s":"myMPS","v":"6.44.0"},"748781":{"s":"myMPS","v":"6.45.0"},"750379":{"s":"Nova","v":"6.45.0"},"751154":{"s":"myMPS","v":"6.44.0"},"753068":{"s":"myMPS","v":"6.44.0"},"757543":{"s":"myMPS","v":"6.44.0"},"759945":{"s":"myMPS","v":"6.45.0"},"760447":{"s":"myMPS","v":"6.45.0"},"761443":{"s":"myMPS","v":"6.43.0"},"766844":{"s":"myMPS","v":"6.45.0"},"767123":{"s":"myMPS","v":"6.44.0"},"768103":{"s":"myMPS","v":"6.45.0"},"771759":{"s":"myMPS","v":"6.45.0"},"77224":{"s":"myMPS","v":"6.44.0"},"773328":{"s":"myMPS","v":"6.44.0"},"774820":{"s":"myMPS","v":"6.44.0"},"775975":{"s":"myMPS","v":"6.45.0"},"777021":{"s":"Nova","v":"6.42.0"},"777641":{"s":"myMPS","v":"6.45.0"},"779180":{"s":"myMPS","v":"6.44.0"},"779296":{"s":"Nova","v":"6.45.0"},"782262":{"s":"myMPS","v":"6.39.0"},"782815":{"s":"myMPS","v":"6.45.0"},"783455":{"s":"myMPS","v":"6.44.0"},"785539":{"s":"myMPS","v":"6.45.0"},"789151":{"s":"Nova","v":"6.44.0"},"793051":{"s":"myMPS","v":"6.45.0"},"796158":{"s":"Nova","v":"6.44.0"},"796336":{"s":"myMPS","v":"6.45.0"},"809632":{"s":"myMPS","v":"6.44.0"},"809861":{"s":"myMPS","v":"6.44.0"},"810223":{"s":"myMPS","v":"6.44.0"},"812099":{"s":"myMPS","v":"6.45.0"},"81345":{"s":"myMPS","v":"6.45.0"},"813729":{"s":"myMPS","v":"6.45.0"},"814806":{"s":"myMPS","v":"6.43.0"},"817252":{"s":"myMPS","v":"6.45.0"},"820598":{"s":"myMPS","v":"6.43.0"},"821144":{"s":"myMPS","v":"6.44.0"},"821489":{"s":"myMPS","v":"6.44.0"},"821837":{"s":"myMPS","v":"6.45.0"},"822000":{"s":"myMPS","v":"6.45.0"},"823341":{"s":"myMPS","v":"6.45.0"},"824631":{"s":"myMPS","v":"6.45.0"},"824674":{"s":"myMPS","v":"6.45.0"},"825859":{"s":"myMPS","v":"6.44.0"},"826294":{"s":"myMPS","v":"6.45.0"},"827428":{"s":"myMPS","v":"6.45.0"},"827576":{"s":"myMPS","v":"6.45.0"},"827991":{"s":"myMPS","v":"6.45.0"},"830127":{"s":"Nova","v":"6.45.0"},"831808":{"s":"myMPS","v":"6.45.0"},"832898":{"s":"Nova","v":"6.44.0"},"834580":{"s":"myMPS","v":"6.44.0"},"8393":{"s":"Nova","v":"6.45.0"},"8614792":{"s":"myMPS","v":"6.44.0"},"872539":{"s":"myMPS","v":"6.45.0"},"878111":{"s":"myMPS","v":"6.45.0"},"879088":{"s":"myMPS","v":"6.44.0"},"879185":{"s":"myMPS","v":"6.45.0"},"881783":{"s":"myMPS","v":"6.45.0"},"882909":{"s":"Nova","v":"6.44.0"},"8841594":{"s":"myMPS","v":"6.45.0"},"884448":{"s":"myMPS","v":"6.45.0"},"886661":{"s":"myMPS","v":"6.44.0"},"899674":{"s":"myMPS","v":"6.45.0"},"899925":{"s":"myMPS","v":"6.44.0"},"905143":{"s":"myMPS","v":"6.45.0"},"908266":{"s":"myMPS","v":"6.44.0"},"908711":{"s":"myMPS","v":"6.44.0"},"910562":{"s":"Nova","v":"6.44.0"},"916242":{"s":"myMPS","v":"6.45.0"},"916307":{"s":"myMPS","v":"6.44.0"},"916420":{"s":"myMPS","v":"6.44.0"},"917079":{"s":"myMPS","v":"6.44.0"},"918369":{"s":"myMPS","v":"6.45.0"},"919217":{"s":"myMPS","v":"6.45.0"},"919411":{"s":"myMPS","v":"6.44.0"},"919683":{"s":"myMPS","v":"6.45.0"},"920843":{"s":"myMPS","v":"6.45.0"},"928240":{"s":"myMPS","v":"6.45.0"},"929611":{"s":"myMPS","v":"6.45.0"},"930636":{"s":"myMPS","v":"6.45.0"},"931543":{"s":"myMPS","v":"6.44.0"},"932078":{"s":"myMPS","v":"6.45.0"},"932647":{"s":"myMPS","v":"6.45.0"},"933635":{"s":"myMPS","v":"6.45.0"},"933988":{"s":"myMPS","v":"6.45.0"},"934194":{"s":"myMPS","v":"6.45.0"},"936251":{"s":"myMPS","v":"6.44.0"},"936332":{"s":"Nova","v":"6.43.0"},"939056":{"s":"myMPS","v":"6.44.0"},"940127":{"s":"myMPS","v":"6.45.0"},"941158":{"s":"myMPS","v":"6.44.0"},"941174":{"s":"Nova","v":"6.45.0"},"942820":{"s":"myMPS","v":"6.44.0"},"945587":{"s":"myMPS","v":"6.45.0"},"948543":{"s":"myMPS","v":"6.45.0"},"949183":{"s":"myMPS","v":"6.44.0"},"94919":{"s":"myMPS","v":"6.45.0"},"950653":{"s":"myMPS","v":"6.45.0"},"95087":{"s":"myMPS","v":"6.45.0"},"951986":{"s":"myMPS","v":"6.44.0"},"955051":{"s":"myMPS","v":"6.45.0"},"955795":{"s":"myMPS","v":"6.44.0"},"95672":{"s":"myMPS","v":"6.45.0"},"958867":{"s":"myMPS","v":"6.45.0"},"958948":{"s":"myMPS","v":"6.45.0"},"959375":{"s":"myMPS","v":"6.45.0"},"961078":{"s":"Nova","v":"6.44.0"},"963356":{"s":"myMPS","v":"6.45.0"},"96423":{"s":"myMPS","v":"6.45.0"},"967289":{"s":"myMPS","v":"6.44.0"},"967734":{"s":"myMPS","v":"6.44.0"},"968250":{"s":"Nova","v":"6.45.0"},"970166":{"s":"myMPS","v":"6.45.0"},"973513":{"s":"myMPS","v":"6.44.0"},"973696":{"s":"myMPS","v":"6.45.0"},"97411":{"s":"myMPS","v":"6.45.0"},"974366":{"s":"myMPS","v":"6.45.0"},"975095":{"s":"myMPS","v":"6.45.0"},"975354":{"s":"myMPS","v":"6.45.0"},"977500":{"s":"myMPS","v":"6.44.0"},"978272":{"s":"myMPS","v":"6.45.0"},"979937":{"s":"myMPS","v":"6.45.0"},"980773":{"s":"myMPS","v":"6.45.0"},"981885":{"s":"Nova","v":"6.45.0"},"982385":{"s":"myMPS","v":"6.45.0"},"982814":{"s":"myMPS","v":"6.45.0"},"983616":{"s":"myMPS","v":"6.44.0"},"983829":{"s":"myMPS","v":"6.44.0"},"984361":{"s":"myMPS","v":"6.45.0"},"986658":{"s":"myMPS","v":"6.44.0"},"987344":{"s":"myMPS","v":"6.45.0"},"987441":{"s":"myMPS","v":"6.44.0"},"9876543":{"s":"Nova","v":"6.45.0"},"988952":{"s":"myMPS","v":"6.45.0"},"989290":{"s":"Nova","v":"6.45.0"},"989428":{"s":"myMPS","v":"6.45.0"},"9900002":{"s":"Nova","v":"6.45.0"},"994588":{"s":"myMPS","v":"6.44.0"},"99503":{"s":"myMPS","v":"6.45.0"},"995428":{"s":"myMPS","v":"6.45.0"},"995495":{"s":"myMPS","v":"6.44.0"},"996017":{"s":"myMPS","v":"6.44.0"},"997544":{"s":"Nova","v":"6.45.0"},"998346":{"s":"myMPS","v":"6.44.0"},"998400":{"s":"myMPS","v":"6.44.0"}};
-const LATEST_VER='6.45.0';
+let LATEST_VER='6.46.0'; // default — overridden by Metadata.LATEST_VERSION at runtime
 const ALL_VERSIONS=['6.45.0','6.44.0','6.43.0','6.42.0','6.41.1','6.40.1','6.39.0','6.37.0'];
 
 // Feature breakdown map — real data from FeatureAdoption CSV (Category + FeatureName + FeatureCount)
@@ -684,12 +700,21 @@ const FEATURES_MAP={"1. Encounters":[{"n":"consult-complete","d":"Consult Comple
 
 const CLIENTS=RAW_CLIENTS.map((r,i)=>{
   const bc=r.owner?BC_MAP[r.owner.toLowerCase()]||null:null;
-  const hc=r.cs==='active';
+  const hc = ['active','Active','InProgress','in progress','Trial','trial'].includes(r.cs) || (r.cs && r.cs.toLowerCase()==='active');
   const status=!bc?'Unassigned':!hc?'Inactive':pick(['Active','Active','Active','Active','Trial','Inactive']);
-  const enc=hc?ri(0,820):ri(0,8);
-  const feat=hc?ri(20,4200):ri(0,30);
+  // Realistic embedded distribution (used only before live data loads):
+  // ~55% encounter users, ~20% feature-only, ~25% no activity
+  const rand=Math.random();
+  const enc  = !hc ? ri(0,3)
+             : rand < 0.25 ? 0                    // 25% no activity
+             : rand < 0.45 ? 0                    // 20% feature-only (enc=0)
+             : ri(1,820);                         // 55% encounter users
+  const feat = !hc ? ri(0,5)
+             : enc > 0   ? ri(10, 3000)           // encounter users also have features
+             : rand < 0.45 ? ri(50, 2000)         // feature-only: meaningful feat events
+             : 0;                                 // no activity: feat=0 too
   const ai=enc>100?ri(20,540):ri(0,40);
-  const da=hc&&enc>0?ri(5,28):ri(0,5);
+  const da=hc&&enc>0?ri(5,28):hc&&feat>0?ri(1,10):ri(0,3);
   const isActiveClient = hc && normaliseStatus(r.cs) !== 'Inactive' && normaliseStatus(r.cs) !== 'Rejected' && normaliseStatus(r.cs) !== 'Cancelled';
   const per=isActiveClient&&enc>200&&da>18?'Power Clinical User':isActiveClient&&enc>50?'Standard Clinical User':feat>300?'Admin/Power Support':'Casual User';
   const ld=new Date(yest);ld.setDate(ld.getDate()-(status==='Inactive'?ri(16,45):ri(0,7)));
@@ -859,10 +884,14 @@ async function loadLiveData() {
     return;
   }
 
-  // Extract last refreshed from Metadata rows
-  const lastRefRow = meta.rows && meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
-  const lastRefStr = lastRefRow ? lastRefRow.Value : null;
-  setLiveStatus('[1/3] API connected ✓ — last refreshed: ' + (lastRefStr || 'unknown'), 'ok');
+  // Extract last refreshed and latest version from Metadata rows
+  const lastRefRow  = meta.rows && meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
+  const lastRefStr  = lastRefRow ? lastRefRow.Value : null;
+  const latestVerRow = meta.rows && meta.rows.find(r => r.Key === 'LATEST_VERSION');
+  if (latestVerRow && latestVerRow.Value) {
+    LATEST_VER = String(latestVerRow.Value).trim();  // e.g. "6.46.0" — auto-updated nightly
+  }
+  setLiveStatus('[1/3] API connected ✓ — data: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
 
   // Step 2 — fetch BCOwnership (real BC assignments from 3C sheet)
   setLiveStatus('[2/3] Fetching BC ownership data…', 'info');
@@ -872,6 +901,7 @@ async function loadLiveData() {
 
   if (bcData && !bcData.error && bcData.rows && bcData.rows.length > 0) {
     applyBCOwnership_(bcData.rows);
+    _lastBcRows = bcData.rows.length;
     setLiveStatus('[2/3] BC ownership applied (' + bcData.rows.length + ' rows) ✓', 'ok');
   } else {
     setLiveStatus('[2/3] BCOwnership unavailable — using embedded BC assignments', 'warn');
@@ -902,9 +932,43 @@ async function loadLiveData() {
   updateLagBadge(refreshLabel);
   setLiveStatus('Live data applied to ' + (sheetData.rowCount || 0) + ' practices ✓', 'ok');
   hideRetryButton();
+
+  // Update freshness bar (admin only — bar is hidden for other roles)
+  updateFreshnessBar({
+    refreshed: lastRefStr || 'unknown',
+    source:    'Live · Apps Script API',
+    version:   LATEST_VER,
+    clients:   sheetData.rowCount || 0,
+    bcRows:    (typeof _lastBcRows !== 'undefined') ? _lastBcRows : '—'
+  });
+}
+
+let _lastBcRows = 0;  // track BC ownership row count for freshness bar
+
+function updateFreshnessBar(info) {
+  const el = id => document.getElementById(id);
+  if (!el('freshness-bar')) return;
+  if (info.refreshed && el('fr-refreshed'))
+    el('fr-refreshed').textContent = 'Last refresh: ' + String(info.refreshed).replace('T',' ').substring(0,16) + ' SAST';
+  if (info.source    && el('fr-source'))   el('fr-source').textContent   = 'Source: ' + info.source;
+  if (info.version   && el('fr-ver'))      el('fr-ver').textContent      = info.version;
+  if (info.clients   && el('fr-clients'))  el('fr-clients').textContent  = 'Practices enriched: ' + info.clients;
+  if (info.bcRows    && el('fr-bc'))       el('fr-bc').textContent       = 'BC ownership rows: ' + info.bcRows;
 }
 
 function showRetryButton() {
+  if (role !== 'admin') {
+    // Non-admin: show a read-only indicator instead of an actionable button
+    if (!document.getElementById('retry-live-btn')) {
+      const ind = document.createElement('span');
+      ind.id = 'retry-live-btn';
+      ind.style.cssText = 'font-size:11px;color:rgba(255,255,255,.5);padding:4px 10px';
+      ind.textContent = '⚠ Live data unavailable';
+      const strip = document.querySelector('.gfb');
+      if (strip) strip.appendChild(ind);
+    }
+    return;
+  }
   if (document.getElementById('retry-live-btn')) return;
   const btn = document.createElement('button');
   btn.id        = 'retry-live-btn';
@@ -1025,6 +1089,18 @@ function applyLiveData(sheetData) {
     return;
   }
 
+  // ── CRITICAL: zero out enc/feat/da on ALL clients before applying live data.
+  // Embedded data has random non-zero enc/feat values for every client.
+  // Any client NOT in the live data would keep those random values, making
+  // them appear as encounter users and suppressing feature-only counts.
+  // After this reset, unmatched clients correctly show zero activity.
+  CLIENTS.forEach(c => {
+    c.enc  = 0;
+    c.feat = 0;
+    c.da   = 0;
+    c.ai   = 0;
+  });
+
   // Build lookup: stripped BPN (no leading zeros) → row
   const liveMap = {};
   sheetData.rows.forEach(r => {
@@ -1032,20 +1108,39 @@ function applyLiveData(sheetData) {
     if (key) liveMap[key] = r;
   });
 
+  // Track whether live data has been applied — used by applyF to hide unmatched clients
+  window._liveDataLoaded = true;
+  // Hide the embedded data warning on the exec summary
+  const ew = document.getElementById('embedded-warning');
+  if (ew) ew.style.display = 'none';
+
   let enriched = 0;
   CLIENTS.forEach(c => {
     const key  = String(c.bpn || '').replace(/^0+/, '');
     const live = liveMap[key];
-    if (!live) return;
+    if (!live) {
+      c.liveData = false;  // not in telemetry — hide from all views
+      return;
+    }
+    c.liveData = true;
 
-    if (live.TotalEncounters != null)  c.enc  = Number(live.TotalEncounters)  || 0;
-    if (live.DaysActive       != null)  c.da   = Number(live.DaysActive)       || 0;
+    // Always overwrite enc, da, feat with live values including zero.
+    // If we only set them when non-null or > 0, clients that genuinely
+    // had 0 encounters keep their embedded random values and appear as
+    // encounter users instead of feature-only — causing the feature-only
+    // count to be far too low.
+    c.enc  = live.TotalEncounters != null ? (Number(live.TotalEncounters) || 0) : 0;
+    c.da   = live.DaysActive       != null ? (Number(live.DaysActive)       || 0) : 0;
 
-    // Sum all non-noise category events for c.feat
+    // Sum all meaningful (non-noise) category event columns for feat.
+    // Always assign — including 0 — so enc===0 && feat===0 accurately
+    // means "truly no activity", not "we just never updated the value".
     const catKeys = ['Events_Encounters','Events_Clinical_Doc','Events_Scripts','Events_Pathology',
                      'Events_AI_Features','Events_Preventative_Care','Events_Task_Management','Events_Customization'];
-    const featTotal = catKeys.reduce((a,k) => a + (Number(live[k]) || 0), 0);
-    if (featTotal > 0) c.feat = featTotal;
+    c.feat = catKeys.reduce((a,k) => a + (Number(live[k]) || 0), 0);
+
+    // AI events separately for the scatter chart
+    if (live.Events_AI_Features != null) c.ai = Number(live.Events_AI_Features) || 0;
 
     if (live.AppVersion && live.AppVersion !== '—') {
       c.appVer   = live.AppVersion;
@@ -1072,10 +1167,19 @@ window.boot = function(){
   sessionStorage.setItem('hbc-role',role);
   document.getElementById('auth-gate').style.display='none';
   document.getElementById('app').style.display='flex';
-  const isBC=role==='bc';
-  document.getElementById('ua').textContent=isBC?'BC':'V';
-  document.getElementById('uname').textContent=isBC?'BC / Manager':'General Viewer';
-  document.getElementById('urole').textContent=isBC?'Full access':'Aggregated view';
+  const isBC=role==='bc'||role==='admin';
+  if(role==='admin'){
+    document.getElementById('ua').textContent='AD';
+    document.getElementById('ua').style.background='rgba(119,87,236,.85)';
+    document.getElementById('uname').textContent='Admin';
+    document.getElementById('urole').textContent='Full access + data control';
+    const fb=document.getElementById('freshness-bar');
+    if(fb) fb.style.display='flex';
+  } else {
+    document.getElementById('ua').textContent=isBC?'BC':'V';
+    document.getElementById('uname').textContent=isBC?'BC / Manager':'General Viewer';
+    document.getElementById('urole').textContent=isBC?'Full access':'Aggregated view';
+  }
   document.querySelectorAll('.bc-only').forEach(e=>e.classList.toggle('hidden',!isBC));
   const bcSel=document.getElementById('gf-bc');
   BCS.forEach(b=>{const o=document.createElement('option');o.value=b.name;o.textContent=b.name;bcSel.appendChild(o);});
@@ -1088,11 +1192,16 @@ window.boot = function(){
 
 // ── FILTERS ──
 let FC=[];
+window._liveDataLoaded = false;  // set true only once ClientSummary has been applied
 function applyF(){
   const bc=document.getElementById('gf-bc').value;
   const tm=document.getElementById('gf-team').value;
   const q=(document.getElementById('gf-q').value||'').toLowerCase().trim();
-  FC=CLIENTS.filter(c=>{
+  // When live data is loaded, only show clients confirmed in the telemetry.
+  // Unmatched clients have random embedded values — showing them causes confusion.
+  const pool = window._liveDataLoaded ? CLIENTS.filter(c => c.liveData === true) : CLIENTS;
+
+  FC=pool.filter(c=>{
     if(bc&&(!c.bc||c.bc.name!==bc))return false;
     if(tm&&(!c.bc||c.bc.team!==tm))return false;
     if(q){
@@ -1102,7 +1211,10 @@ function applyF(){
     return true;
   });
   const n=FC.length;
-  document.getElementById('fr').textContent=n===CLIENTS.length?`Showing all ${n} clients`:`Showing ${n} of ${CLIENTS.length} clients`;
+  const poolLabel = window._liveDataLoaded ? ` of ${pool.length} active in telemetry` : ` of ${CLIENTS.length} clients`;
+  document.getElementById('fr').textContent = n === pool.length
+    ? `Showing all ${n}${window._liveDataLoaded ? ' live' : ''} clients`
+    : `Showing ${n}${poolLabel}`;
   const tab=document.querySelector('.tab.active')?.dataset?.t;
   if(tab)refresh(tab);
 }
@@ -1455,7 +1567,7 @@ function renderExec(){
       const bFeatOnly=bC.filter(c=>c.enc===0&&c.feat>0).length;
       const uid=`bp-${bc.id}-${Date.now()}`;
       const card=document.createElement('div');card.className='bcc';
-      const isBC=role==='bc';
+      const isBC=role==='bc'||role==='admin';
       card.innerHTML=`
         <div class="bcch" onclick="toggleP('${uid}',this)">
           <div class="bav">${bc.initials}</div>
@@ -1533,7 +1645,7 @@ function renderEncTable(){
   if(teamFilter) fc=fc.filter(c=>c.bc&&c.bc.team===teamFilter);
   fc.sort((a,b)=>b.enc-a.enc);
 
-  const isBC=role==='bc';
+  const isBC=role==='bc'||role==='admin';
   document.getElementById('enc-tbody').innerHTML=fc.length?fc.map((c,i)=>{
     const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
     // Add 6: per-provider encounter breakdown (expandable)
@@ -1584,7 +1696,7 @@ function renderFeatKPIs(){
 const bcProvPanels = {};
 
 function renderBCTable(){
-  const isBC=role==='bc';
+  const isBC=role==='bc'||role==='admin';
   document.getElementById('bv-tbody').innerHTML=FC.length?FC.map(c=>{
     const uid = 'bvp-'+c.bpn;
     const provRows = isBC ? `
