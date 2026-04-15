@@ -295,10 +295,12 @@ tr:hover td{background:#fafaf8;}
 
     <!-- EXEC SUMMARY -->
     <div class="sec active" id="s-exec">
-      <div id="embedded-warning" style="background:rgba(247,148,29,.12);border:1px solid rgba(247,148,29,.5);border-radius:8px;padding:12px 16px;margin:0 0 4px 0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px;flex-shrink:0">⚠️</span>
-        <span><strong>Showing embedded sample data</strong> — figures below are illustrative only and do not reflect real usage. Open the dashboard via <strong>http://localhost:8080</strong> and sign in as Admin to load live data.</span>
+      <div id="embedded-warning" style="background:rgba(247,148,29,.12);border:1px solid rgba(247,148,29,.5);border-radius:8px;padding:12px 16px;margin:0 0 4px 0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:20px;flex-shrink:0" id="ew-icon">⏳</span>
+        <span style="flex:1" id="ew-msg"><strong>Connecting to live data…</strong> — If data does not appear within 20 seconds, check the connection status in the filter bar above.</span>
+        <button onclick="loadLiveData()" id="ew-retry" style="background:var(--or);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">↺ Retry now</button>
       </div>
+
       <div class="shdr">
         <h2>Executive summary</h2>
         <p>Manager view — all BC portfolios, team rollups, and at-risk clients. Use the filter bar above to drill into a BC or team.</p>
@@ -591,8 +593,6 @@ tr:hover td{background:#fafaf8;}
 </div>
 
 <script>
-// Ensure boot is always globally accessible regardless of parse order
-var boot;
 
 
 // ── DATES ──
@@ -698,13 +698,15 @@ function doLogin(){
   const p=document.getElementById('apwd').value;
   document.getElementById('ae').style.display='none';
   if(selR==='bc'&&p==='HbC@BC2026'){role='bc';boot();}
-  else if(selR==='viewer'&&p==='HbC@View2026'){role='viewer';boot();}
+  else if((selR==='viewer'||selR==='bc')&&p==='HbC@View2026'){role='viewer';boot();}
+  else if(selR==='admin'&&p==='HbC@BC2026'){role='admin';boot();}
   else document.getElementById('ae').style.display='block';
 }
 function logout(){sessionStorage.removeItem('hbc-role');location.reload();}
 // ── WEB APP CONFIG ──────────────────────────────────────────────────
-const WEB_APP_URL = 'https://script.google.com/a/macros/healthbridge.co.za/s/AKfycbzWPGPdRfJSNYETabIUo3tgn6nqcMXrRKuZLz09_lqZ382ju2rQrcszhtvhU9E64T30/exec';
+const WEB_APP_URL = 'https://script.google.com/a/macros/healthbridge.co.za/s/AKfycbyojd6LP-prQjr-T2JdGzEROuRqbNFFBgT-_rCQanz8Ump2q3itTkY_4n0cqSdACaDL/exec';
 const API_TOKEN   = 'hbc-dash-2026-xK9mQpLw';
+let _lastBcRows = 0;
 
 // ── LIVE DATA STATUS HELPERS ─────────────────────────────────────────
 function setLiveStatus(msg, type) {
@@ -722,130 +724,141 @@ function updateLagBadge(text) {
   if (el) el.innerHTML = '<div class="ld"></div><span>' + text + '</span>';
 }
 
-// ── JSONP FETCH ───────────────────────────────────────────────────────
-// Uses a JSONP <scr‌ipt> tag so no CORS restrictions apply. The Apps Script
-// wraps the JSON response in a function call (JSONP) that we register
-// as a global before the tag fires.
-function jsonpFetch(url, timeoutMs) {
-  return new Promise(resolve => {
-    const cbName = '_hbcCb_' + Date.now();
-    const script  = document.createElement('script');
-    let settled   = false;
+function showRetryButton() {
+  let panel = document.getElementById('diag-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'diag-panel';
+    panel.style.cssText = 'width:100%;margin-top:8px;background:rgba(255,77,0,.07);border:1.5px solid rgba(255,77,0,.3);border-radius:8px;padding:10px 14px;font-size:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;';
+    const gfb = document.querySelector('.gfb');
+    if (gfb) gfb.appendChild(panel);
+  }
+  const inIframe = (() => { try { return window.self !== window.top; } catch(e) { return true; } })();
+  const statusMsg = (document.getElementById('live-status') || {}).textContent || 'API unreachable';
 
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      setLiveStatus('Request timed out after ' + Math.round(timeoutMs/1000) + 's — check network or API', 'warn');
-      resolve(null);
-    }, timeoutMs);
+  // Build using DOM — avoids all quote-escaping issues in innerHTML strings
+  panel.innerHTML = '';
 
-    function cleanup() {
-      clearTimeout(timer);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
+  const icon = document.createElement('span');
+  icon.style.fontSize = '16px';
+  icon.textContent = '⚠️';
+  panel.appendChild(icon);
+
+  const msg = document.createElement('div');
+  msg.style.flex = '1';
+  msg.style.color = '#92400e';
+  if (inIframe) {
+    msg.innerHTML = '<strong>Live data unavailable in Claude preview.</strong> Download this file and open it directly in Chrome (while signed into your Healthbridge Google account) to load live data.';
+  } else {
+    msg.innerHTML = '<strong>Live data load failed.</strong> ' + statusMsg + ' — Check browser console (F12) for details.';
+  }
+  panel.appendChild(msg);
+
+  if (!inIframe) {
+    const retryBtn = document.createElement('button');
+    retryBtn.textContent = '↺ Retry';
+    retryBtn.style.cssText = 'background:var(--or);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;';
+    retryBtn.onclick = function() { panel.remove(); loadLiveData(); };
+    panel.appendChild(retryBtn);
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:var(--sf2);color:var(--mu);border:1.5px solid var(--bd);border-radius:6px;padding:6px 10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;';
+  closeBtn.onclick = function() { panel.remove(); };
+  panel.appendChild(closeBtn);
+}
+
+
+function updateFreshnessBar(info) {
+  const bar = document.getElementById('freshness-bar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  const r = document.getElementById('fr-refreshed');  if (r) r.textContent = 'Last refresh: ' + (info.lastRefreshed || '—');
+  const s = document.getElementById('fr-source');      if (s) s.textContent = 'Source: ' + (info.source || 'live API');
+  const v = document.getElementById('fr-ver');         if (v) v.textContent = info.latestVersion || '—';
+  const c = document.getElementById('fr-clients');     if (c) c.textContent = 'Clients enriched: ' + (info.clients || 0);
+  const b = document.getElementById('fr-bc');          if (b) b.textContent = 'BC ownership rows: ' + (info.bcRows || 0);
+}
+
+// ── DIRECT FETCH (replaces JSONP) ────────────────────────────────────
+// Apps Script CORS note: the deployed URL may redirect to a login page if
+// the Workspace domain restricts public access. We try fetch() first; if
+// the response is HTML (login redirect) we surface a clear error.
+async function apiFetch(sheet, timeoutMs) {
+  const url = WEB_APP_URL + '?sheet=' + sheet + '&token=' + API_TOKEN;
+
+  // Use Promise.race for timeout — AbortController/AbortSignal cannot be
+  // cloned across iframe boundaries and throws in sandboxed environments.
+  const fetchPromise = fetch(url).then(async res => {
+    const text = await res.text();
+    if (text.trim().startsWith('<')) {
+      setLiveStatus('API returned a login/HTML redirect. In Apps Script → Deploy → Manage Deployments → Edit → Who has access → set to "Anyone" (not "Anyone within Healthbridge").', 'error');
+      showRetryButton();
+      return null;
     }
-
-    // Called by the JSONP response
-    window[cbName] = function(data) {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(data);
-    };
-
-    // Script parsed & executed but our callback was never invoked
-    script.onload = function() {
-      setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          cleanup();
-          setLiveStatus('Script loaded but callback not invoked — API may not support JSONP', 'warn');
-          resolve(null);
-        }
-      }, 2000);
-    };
-
-    script.onerror = function() {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      setLiveStatus('Script failed to load — browser may be blocking cross-origin script from file://', 'error');
-      resolve(null);
-    };
-
-    script.src = url;
-    setLiveStatus('Requesting: ' + url.split('?')[0]);
-    document.head.appendChild(script);
+    return JSON.parse(text);
   });
+
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('timeout')), timeoutMs)
+  );
+
+  try {
+    return await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (err) {
+    if (err.message === 'timeout') {
+      setLiveStatus(sheet + ' request timed out after ' + Math.round(timeoutMs/1000) + 's — API may be slow or unreachable', 'warn');
+    } else {
+      setLiveStatus('Fetch error (' + sheet + '): ' + err.message, 'error');
+    }
+    return null;
+  }
 }
 
 // ── MAIN LIVE-DATA LOADER ─────────────────────────────────────────────
 async function loadLiveData() {
   if (!WEB_APP_URL) {
-    updateLagBadge('📦 Embedded data · no web app configured');
-    setLiveStatus('No WEB_APP_URL set — using embedded data', 'warn');
+    setLiveStatus('No WEB_APP_URL set', 'warn');
     return;
   }
 
   updateLagBadge('⏳ Connecting to live data…');
-  setLiveStatus('Starting live data fetch…', 'info');
+  setLiveStatus('[1/3] Probing API…', 'info');
 
-  // Step 1 — lightweight connectivity probe via Metadata
-  setLiveStatus('[1/3] Probing API with Metadata endpoint…', 'info');
-  const metaCb  = '_hbcMeta_' + Date.now();
-  const metaUrl = WEB_APP_URL + '?sheet=Metadata&token=' + API_TOKEN + '&callback=' + metaCb;
-
-  const meta = await jsonpFetch(metaUrl, 15000);
-
-  if (!meta) {
-    updateLagBadge('⚠️ Live data unavailable · using embedded');
-    setLiveStatus('API probe failed — see above. Embedded data is in use.', 'error');
-    showRetryButton();
-    return;
-  }
-  if (meta.error) {
-    updateLagBadge('⚠️ API error · using embedded');
-    setLiveStatus('API error: ' + meta.message, 'error');
+  // Step 1 — Metadata (connectivity probe + freshness info)
+  const meta = await apiFetch('Metadata', 15000);
+  if (!meta || meta.error) {
+    setLiveStatus('[1/3] API unreachable: ' + (meta?.message || 'no response'), 'error');
     showRetryButton();
     return;
   }
 
-  // Extract last refreshed and latest version from Metadata rows
   const lastRefRow  = meta.rows && meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
   const lastRefStr  = lastRefRow ? lastRefRow.Value : null;
-  const latestVerRow = meta.rows && meta.rows.find(r => r.Key === 'LATEST_VERSION');
-  if (latestVerRow && latestVerRow.Value) {
-    LATEST_VER = String(latestVerRow.Value).trim();  // e.g. "6.46.0" — auto-updated nightly
-  }
-  setLiveStatus('[1/3] API connected ✓ — data: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
+  const latestVerRow = meta.rows && meta.rows.find(r => r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION');
+  if (latestVerRow) LATEST_VER = String(latestVerRow.Value).trim();
 
-  // Step 2 — fetch BCOwnership (real BC assignments from 3C sheet)
-  setLiveStatus('[2/3] Fetching BC ownership data…', 'info');
-  const bcCb  = '_hbcBC_' + Date.now();
-  const bcUrl = WEB_APP_URL + '?sheet=BCOwnership&token=' + API_TOKEN + '&callback=' + bcCb;
-  const bcData = await jsonpFetch(bcUrl, 20000);
+  setLiveStatus('[1/3] API connected ✓ · refreshed: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
 
+  // Step 2 — BCOwnership (builds CLIENTS master list)
+  setLiveStatus('[2/3] Fetching BCOwnership…', 'info');
+  const bcData = await apiFetch('BCOwnership', 20000);
   if (bcData && !bcData.error && bcData.rows && bcData.rows.length > 0) {
     applyBCOwnership_(bcData.rows);
     _lastBcRows = bcData.rows.length;
     setLiveStatus('[2/3] BC ownership applied (' + bcData.rows.length + ' rows) ✓', 'ok');
   } else {
-    setLiveStatus('[2/3] BCOwnership unavailable — using embedded BC assignments', 'warn');
+    setLiveStatus('[2/3] BCOwnership unavailable — ' + (bcData?.message || 'no rows'), 'warn');
   }
 
-  // Step 3 — fetch ClientSummary for usage data
-  setLiveStatus('[3/3] Fetching ClientSummary (this may take a few seconds)…', 'info');
-  const dataCb  = '_hbcData_' + Date.now();
-  const dataUrl = WEB_APP_URL + '?sheet=ClientSummary&token=' + API_TOKEN + '&callback=' + dataCb;
-
-  const sheetData = await jsonpFetch(dataUrl, 30000);
-
+  // Step 3 — ClientSummary (usage telemetry)
+  setLiveStatus('[3/3] Fetching ClientSummary…', 'info');
+  const sheetData = await apiFetch('ClientSummary', 30000);
   if (!sheetData || sheetData.error) {
-    updateLagBadge('⚠️ Partial live data · API connected but ClientSummary failed');
-    setLiveStatus('ClientSummary fetch failed. Using embedded usage data.', 'warn');
-    if (lastRefStr) updateLagBadge('Live · refreshed ' + lastRefStr.replace('T',' ').substring(0,16) + ' SAST');
+    setLiveStatus('ClientSummary failed: ' + (sheetData?.message || 'no response'), 'warn');
     showRetryButton();
+    applyF();
     return;
   }
 
@@ -853,63 +866,14 @@ async function loadLiveData() {
   applyLiveData(sheetData);
   applyF();
 
-  const refreshLabel = lastRefStr
-    ? 'Live · refreshed ' + lastRefStr.replace('T',' ').substring(0,16) + ' SAST'
-    : 'Live · refreshed from Apps Script';
-  updateLagBadge(refreshLabel);
-  setLiveStatus('Live data applied to ' + (sheetData.rowCount || 0) + ' practices ✓', 'ok');
-  hideRetryButton();
-
-  // Update freshness bar (admin only — bar is hidden for other roles)
+  updateLagBadge('✅ Live data · refreshed ' + (lastRefStr || 'recently'));
   updateFreshnessBar({
-    refreshed: lastRefStr || 'unknown',
-    source:    'Live · Apps Script API',
-    version:   LATEST_VER,
-    clients:   sheetData.rowCount || 0,
-    bcRows:    (typeof _lastBcRows !== 'undefined') ? _lastBcRows : '—'
+    lastRefreshed: lastRefStr,
+    source: 'Azure App Insights → Google Sheets',
+    latestVersion: LATEST_VER,
+    clients: sheetData.rowCount || 0,
+    bcRows: _lastBcRows || 0,
   });
-}
-
-let _lastBcRows = 0;  // track BC ownership row count for freshness bar
-
-function updateFreshnessBar(info) {
-  const el = id => document.getElementById(id);
-  if (!el('freshness-bar')) return;
-  if (info.refreshed && el('fr-refreshed'))
-    el('fr-refreshed').textContent = 'Last refresh: ' + String(info.refreshed).replace('T',' ').substring(0,16) + ' SAST';
-  if (info.source    && el('fr-source'))   el('fr-source').textContent   = 'Source: ' + info.source;
-  if (info.version   && el('fr-ver'))      el('fr-ver').textContent      = info.version;
-  if (info.clients   && el('fr-clients'))  el('fr-clients').textContent  = 'Practices enriched: ' + info.clients;
-  if (info.bcRows    && el('fr-bc'))       el('fr-bc').textContent       = 'BC ownership rows: ' + info.bcRows;
-}
-
-function showRetryButton() {
-  if (role !== 'admin') {
-    // Non-admin: show a read-only indicator instead of an actionable button
-    if (!document.getElementById('retry-live-btn')) {
-      const ind = document.createElement('span');
-      ind.id = 'retry-live-btn';
-      ind.style.cssText = 'font-size:11px;color:rgba(255,255,255,.5);padding:4px 10px';
-      ind.textContent = '⚠ Live data unavailable';
-      const strip = document.querySelector('.gfb');
-      if (strip) strip.appendChild(ind);
-    }
-    return;
-  }
-  if (document.getElementById('retry-live-btn')) return;
-  const btn = document.createElement('button');
-  btn.id        = 'retry-live-btn';
-  btn.textContent = '↺ Retry live data';
-  btn.className = 'fc-btn';
-  btn.style.cssText = 'background:var(--or);color:#fff;border-color:var(--or);font-size:11px;padding:4px 10px;height:28px;cursor:pointer';
-  btn.onclick = () => { btn.remove(); loadLiveData(); };
-  const strip = document.querySelector('.gfb');
-  if (strip) strip.appendChild(btn);
-}
-
-function hideRetryButton() {
-  const btn = document.getElementById('retry-live-btn');
-  if (btn) btn.remove();
 }
 
 // ── APPLY BC OWNERSHIP FROM BCOwnership SHEET ─────────────────────────
@@ -924,143 +888,209 @@ function hideRetryButton() {
 //   HbCContract_EffectiveDate → contract start date
 //   EHR              → system/PMA type
 function applyBCOwnership_(rows) {
+  // BCOwnership is the master list — build CLIENTS from it.
+  // Confirmed columns: BPN, CompanyName, CompanyStatus, EHR, ClientOwner,
+  // BCTeam, Speciality, NovaMigration, HbCContractStatus,
+  // HbCContract_EffectiveDate, HbCContract_SignedDate
   if (!rows || rows.length === 0) return;
 
-  let matched = 0;
-  let unmatched = 0;
+  CLIENTS.length = 0;
+  BCS.length     = 0;
+  TEAMS.length   = 0;
 
   rows.forEach(r => {
-    // Normalise BPN — strip leading zeros for consistent matching
-    const bpnKey = String(r.BPN || '').replace(/^0+/, '').trim();
-    if (!bpnKey) return;
+    const bpn = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (!bpn || bpn === '0') return;
 
-    // Find the matching client in the embedded CLIENTS array
-    const client = CLIENTS.find(c => String(c.bpn || '').replace(/^0+/, '').trim() === bpnKey);
-    if (!client) { unmatched++; return; }
-
-    // ── BC assignment ──────────────────────────────────────────
-    // ClientOwner holds the assigned BC's name in your 3C sheet
     const bcName = String(r.ClientOwner || '').trim();
-    const bcTeam = String(r.BCTeam || '').trim();
+    const bcTeam = String(r.BCTeam      || '').trim();
+    const bcObj  = bcName ? {
+      id:       'live_' + bcName.replace(/\s+/g, '_'),
+      name:     bcName,
+      team:     bcTeam || 'Unassigned',
+      initials: bcName.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2),
+    } : null;
 
-    if (bcName) {
-      // Try to find a matching BC in the embedded BCS list first
-      const bcObj = BCS.find(b => b.name.toLowerCase() === bcName.toLowerCase());
-      if (bcObj) {
-        client.bc = bcObj;
-      } else {
-        // Create a live BC object from the real data
-        client.bc = {
-          id:       'live_' + bcName.replace(/\s+/g, '_'),
-          name:     bcName,
-          team:     bcTeam || '—',
-          initials: bcName.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2),
-        };
-      }
-    } else {
-      client.bc = null; // explicitly unassigned in 3C
+    // Contract status — HbCContractStatus is the primary field
+    const status = String(r.HbCContractStatus || r.CompanyStatus || '').trim() || 'active';
+
+    // Speciality
+    const spec = String(r.Speciality || '').trim();
+
+    // Practice name
+    const name = String(r.CompanyName || '').trim() || bpn;
+
+    // PMA — EHR column: 'Nova' values listed in aggregator CONFIG.NOVA_SYSTEMS
+    // NovaMigration = 'Yes' also means Nova
+    const ehr      = String(r.EHR || '').trim().toLowerCase();
+    const novaMig  = String(r.NovaMigration || '').trim().toLowerCase();
+    const pma = (ehr === 'nova' || ehr === 'hbc nova' || novaMig === 'yes') ? 'Nova' : 'myMPS';
+
+    // Register BC + team for filter dropdowns
+    if (bcName && !BCS.find(b => b.name.toLowerCase() === bcName.toLowerCase())) {
+      BCS.push(bcObj);
     }
+    if (bcTeam && !TEAMS.includes(bcTeam)) TEAMS.push(bcTeam);
 
-    // ── Practice name ──────────────────────────────────────────
-    // Use CompanyName from 3C as the authoritative practice name
-    const companyName = String(r.CompanyName || '').trim();
-    if (companyName) client.name = companyName;
+    // Contract start date
+    const contractStart = String(r.HbCContract_EffectiveDate || r.HbCContract_SignedDate || '').trim().slice(0,10) || '—';
+    // Tier — derive from contract status or a Tier column if present
+    const tierRaw = String(r.Tier || r.ContractTier || '').trim().toUpperCase();
+    const tier = tierRaw === 'T1' ? 'T1' : tierRaw === 'T0' ? 'T0' : 'T1'; // default T1
 
-    // ── Contract status ────────────────────────────────────────
-    // HbCContractStatus is the primary field; fall back to CompanyStatus
-    const contractStatus = String(r.HbCContractStatus || r.CompanyStatus || '').trim();
-    if (contractStatus) client.status = contractStatus;
-
-    // ── Contract start date ────────────────────────────────────
-    const effectiveDate = String(r.HbCContract_EffectiveDate || r.HbCContract_SignedDate || '').trim();
-    if (effectiveDate) client.cs = effectiveDate;
-
-    // ── PMA / System ───────────────────────────────────────────
-    // EHR column tells us Nova vs myMPS — only overwrite if present
-    const ehr = String(r.EHR || '').trim();
-    if (ehr) client.pma = ehr;
-
-    // ── Store the full 3C row on the client for future reference ──
-    // This lets render functions access any 3C column (Segment, Tier etc.)
-    client.ownership = r;
-
-    matched++;
+    CLIENTS.push({
+      bpn,
+      liveData: false,   // set true when ClientSummary enriches this entry
+      name, owner: bcName, team: bcTeam, spec,
+      status, cs: status,
+      pma, appVer: '—', onLatest: false, lastA: '',
+      enc: 0, da: 0, feat: 0, ai: 0,
+      per: 'Casual User',
+      bc: bcObj,
+      ownership: r,
+      provs: [],
+      contractStart,
+      tier,
+    });
   });
 
-  // ── Rebuild BCS and TEAMS from live data ───────────────────
-  // This ensures the filter dropdowns reflect real BC names and teams,
-  // not just the synthetic embedded ones.
-  const liveBCNames = [...new Set(rows.map(r => String(r.ClientOwner || '').trim()).filter(Boolean))];
-  liveBCNames.forEach(name => {
-    if (!BCS.find(b => b.name.toLowerCase() === name.toLowerCase())) {
-      const matchRow = rows.find(r => String(r.ClientOwner || '').trim() === name);
-      const team = matchRow ? String(matchRow.BCTeam || '').trim() || 'Unknown' : 'Unknown';
-      BCS.push({
-        id:       'live_' + name.replace(/\s+/g, '_'),
-        name,
-        team,
-        initials: name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2),
-      });
-      if (team && !TEAMS.includes(team)) TEAMS.push(team);
-    }
-  });
-
-  console.log('[HbC BC] Live BC ownership applied — matched: ' + matched +
-    ', unmatched BPNs: ' + unmatched + ', total 3C rows: ' + rows.length);
+  console.log('[HbC BC] Built ' + CLIENTS.length + ' clients from BCOwnership');
 }
 
 // ── APPLY LIVE USAGE DATA FROM ClientSummary SHEET ─────────────────────────
 function applyLiveData(sheetData) {
+  // Confirmed ClientSummary columns:
+  // BPN, PracticeName, PMA, AppVersion, OnLatestVersion, DaysActive,
+  // LastActiveDate, TotalEncounters, EncounterUserDays, FeatureOnlyUserDays,
+  // TreatingProviders, TPNs, Events_Encounters, Events_Clinical_Doc,
+  // Events_Scripts, Events_Pathology, Events_AI_Features,
+  // Events_Preventative_Care, Events_Task_Management, Events_Customization,
+  // Events_Noise_/_Passive, TotalMeaningfulEvents
+
   if (!sheetData || !sheetData.rows || sheetData.rows.length === 0) {
     setLiveStatus('ClientSummary returned no rows', 'warn');
     return;
   }
 
-  // ── Build CLIENTS entirely from live data (no embedded data).
-  CLIENTS.length = 0;
-
-  const catKeys = ['Events_Encounters','Events_Clinical_Doc','Events_Scripts','Events_Pathology',
-                   'Events_AI_Features','Events_Preventative_Care','Events_Task_Management','Events_Customization'];
-
+  // Build fast BPN lookup — BPN may be numeric in sheet, normalise to string no leading zeros
+  const liveMap = {};
   sheetData.rows.forEach(r => {
-    const bpn = String(r.BPN || '').trim();
-    if (!bpn) return;
+    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (key) liveMap[key] = r;
+  });
+
+  // Meaningful event categories (excludes Noise)
+  const catKeys = [
+    'Events_Encounters', 'Events_Clinical_Doc', 'Events_Scripts',
+    'Events_Pathology',  'Events_AI_Features',  'Events_Preventative_Care',
+    'Events_Task_Management', 'Events_Customization',
+  ];
+
+  let enriched = 0;
+  let added    = 0;
+
+  // Step 1 — enrich CLIENTS built from BCOwnership
+  CLIENTS.forEach(c => {
+    const key  = String(c.bpn || '').replace(/^0+/, '').trim();
+    const live = liveMap[key];
+    if (!live) return;   // no telemetry — stays enc=0, liveData=false
+
+    c.liveData = true;
+    c.enc      = Number(live.TotalEncounters)    || 0;
+    c.da       = Number(live.DaysActive)          || 0;
+    c.feat     = catKeys.reduce((a,k) => a + (Number(live[k]) || 0), 0);
+    c.ai       = Number(live.Events_AI_Features)  || 0;
+    c.lastA    = live.LastActiveDate ? String(live.LastActiveDate).slice(0, 10) : '';
+
+    if (live.AppVersion) {
+      c.appVer   = String(live.AppVersion);
+      c.onLatest = live.OnLatestVersion === 'Yes' || live.OnLatestVersion === true;
+    }
+    // TreatingProviders column — split into provs array for BC view
+    if (live.TreatingProviders) {
+      c.provs = String(live.TreatingProviders).split(',')
+                  .map(p => ({ name: p.trim(), tpn: '' }))
+                  .filter(p => p.name);
+    }
+    // PMA from telemetry is most accurate
+    if (live.PMA) c.pma = live.PMA;
+    // Fill in name if 3C had none
+    if (!c.name || c.name === c.bpn) c.name = String(live.PracticeName || c.bpn);
+
+    // Re-derive engagement persona
+    const isAct = /^(active|trial|inprogress|in.?progress)$/i.test((c.status||'').replace(/\s/g,''));
+    c.per = isAct && c.enc > 200 && c.da > 18 ? 'Power Clinical User'
+          : isAct && c.enc > 50               ? 'Standard Clinical User'
+          : c.feat > 300                       ? 'Admin/Power Support'
+                                               : 'Casual User';
+    enriched++;
+  });
+
+  // Step 2 — add telemetry-only BPNs not in BCOwnership (e.g. new sign-ups)
+  sheetData.rows.forEach(r => {
+    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (!key) return;
+    if (CLIENTS.find(c => String(c.bpn||'').replace(/^0+/,'').trim() === key)) return;
+
     const enc  = Number(r.TotalEncounters) || 0;
     const da   = Number(r.DaysActive)       || 0;
     const feat = catKeys.reduce((a,k) => a + (Number(r[k]) || 0), 0);
     const ai   = Number(r.Events_AI_Features) || 0;
-    const pma  = r.PMA || 'MPS';
-    const appVer   = (r.AppVersion && r.AppVersion !== '—') ? r.AppVersion : '—';
-    const onLatest = r.OnLatestVersion === 'Yes';
-    const status   = r.ContractStatus || r.Status || 'active';
-    const lastA    = r.LastActiveDate || '';
-    const isActiveC = /^(active|trial|inprogress|in.?progress)$/i.test(status.replace(/\s/g,''));
-    const per = isActiveC && enc > 200 && da > 18 ? 'Power Clinical User'
-              : isActiveC && enc > 50              ? 'Standard Clinical User'
-              : feat > 300                         ? 'Admin/Power Support'
-                                                   : 'Casual User';
-    CLIENTS.push({ bpn, liveData: true,
-      name: r.PracticeName || r.Name || bpn,
-      owner: r.BCOwner || r.Owner || '',
-      team:  r.BCTeam  || r.Team  || '',
-      spec:  r.Specialty || '',
-      status, cs: status, pma, appVer, onLatest, lastA,
-      enc, da, feat, ai, per, provs: []
+    const per  = enc > 200 && da > 18 ? 'Power Clinical User'
+               : enc > 50             ? 'Standard Clinical User'
+               : feat > 300           ? 'Admin/Power Support' : 'Casual User';
+
+    CLIENTS.push({
+      bpn: key, liveData: true,
+      name:   String(r.PracticeName || key),
+      owner: '', team: '', spec: '', status: 'active', cs: 'active',
+      pma:    r.PMA || 'myMPS',
+      appVer: String(r.AppVersion || '—'),
+      onLatest: r.OnLatestVersion === 'Yes',
+      lastA:  r.LastActiveDate ? String(r.LastActiveDate).slice(0, 10) : '',
+      enc, da, feat, ai, per,
+      bc: null, ownership: null, provs: [],
+      contractStart: '—', tier: 'T1',
     });
+    added++;
   });
 
   window._liveDataLoaded = true;
   const ew = document.getElementById('embedded-warning');
-  if (ew) ew.style.display = 'none';
+  if (ew) {
+    ew.style.background = 'rgba(117,235,158,.12)';
+    ew.style.borderColor = 'rgba(117,235,158,.5)';
+    ew.style.color = '#166534';
+    ew.innerHTML = '<span style="font-size:20px;flex-shrink:0">&#x2705;</span><span><strong>Live data loaded successfully.</strong> Showing real client data from the Google Apps Script API.</span>';
+    setTimeout(() => { if(ew) ew.style.display = 'none'; }, 4000);
+  }
+  // Remove any error diagnostic panel
+  const dp = document.getElementById('diag-panel');
+  if (dp) dp.remove();
 
-  setLiveStatus('Loaded ' + CLIENTS.length + ' practices from live data', 'ok');
+  console.log('[HbC] applyLiveData — enriched: ' + enriched + ', added: ' + added + ', total: ' + CLIENTS.length);
+  setLiveStatus('Loaded ' + CLIENTS.length + ' practices (' + enriched + ' matched · ' + added + ' telemetry-only)', 'ok');
 }
 
 // ── BOOT ──
-window.boot = function(){
+function boot(){
   sessionStorage.setItem('hbc-role',role);
   document.getElementById('auth-gate').style.display='none';
   document.getElementById('app').style.display='flex';
+  // Detect iframe and update warning banner safely after all JS is loaded
+  try {
+    const inIframe = (window.self !== window.top);
+    const w = document.getElementById('embedded-warning');
+    const m = document.getElementById('ew-msg');
+    const ic = document.getElementById('ew-icon');
+    const rb = document.getElementById('ew-retry');
+    if (w && inIframe) {
+      w.style.background='rgba(119,87,236,.1)'; w.style.borderColor='rgba(119,87,236,.4)'; w.style.color='#4c1d95';
+      if(ic) ic.textContent='ℹ️';
+      if(m) m.innerHTML='<strong>Running inside Claude preview — live data unavailable.</strong> Download this file and open it directly in Chrome with your Healthbridge Google account signed in.';
+      if(rb) rb.style.display='none';
+    }
+  } catch(e) {}
   const isBC=role==='bc'||role==='admin';
   if(role==='admin'){
     document.getElementById('ua').textContent='AD';
@@ -1093,7 +1123,8 @@ function applyF(){
   const q=(document.getElementById('gf-q').value||'').toLowerCase().trim();
   // When live data is loaded, only show clients confirmed in the telemetry.
   // Unmatched clients have random embedded values — showing them causes confusion.
-  const pool = window._liveDataLoaded ? CLIENTS.filter(c => c.liveData === true) : CLIENTS;
+  // Show all CLIENTS — BCOwnership is the master list; liveData=true means telemetry enriched
+  const pool = CLIENTS;
 
   FC=pool.filter(c=>{
     if(bc&&(!c.bc||c.bc.name!==bc))return false;
@@ -1105,9 +1136,9 @@ function applyF(){
     return true;
   });
   const n=FC.length;
-  const poolLabel = window._liveDataLoaded ? ` of ${pool.length} active in telemetry` : ` of ${CLIENTS.length} clients`;
+  const poolLabel = ` of ${CLIENTS.length} clients`;
   document.getElementById('fr').textContent = n === pool.length
-    ? `Showing all ${n}${window._liveDataLoaded ? ' live' : ''} clients`
+    ? `Showing all ${n} clients`
     : `Showing ${n}${poolLabel}`;
   const tab=document.querySelector('.tab.active')?.dataset?.t;
   if(tab)refresh(tab);
@@ -1497,7 +1528,7 @@ function renderExec(){
     ua.forEach(c=>{
       const row=document.createElement('div');
       row.style.cssText='background:#fff;border-radius:var(--r-sm);padding:11px 16px;margin-bottom:8px;border-left:4px solid var(--bu);box-shadow:var(--sh);display:flex;gap:14px;align-items:center;';
-      row.innerHTML=`<strong style="flex:1">${c.name}</strong><span class="tm">${c.bpn}</span><span class="b bcri">No BC</span><span class="b ${c.hc?'bt0':'bi'}">${c.hc?'Has contract':'No contract'}</span>`;
+      row.innerHTML=`<strong style="flex:1">${c.name}</strong><span class="tm">${c.bpn}</span><span class="b bcri">No BC</span><span class="b ${c.ownership?'bt0':'bi'}">${c.ownership?'Has contract':'No contract'}</span>`;
       el.appendChild(row);
     });
   }
@@ -1520,7 +1551,7 @@ function renderOverview(){
 function renderEncKPIs(){
   const fc=FC,t=fc.reduce((a,c)=>a+c.enc,0);
   document.getElementById('enk1').textContent=t.toLocaleString();
-  document.getElementById('enk4').textContent=fc.filter(c=>c.enc<5&&c.hc).length;
+  document.getElementById('enk4').textContent=fc.filter(c=>c.enc<5).length;
 }
 function renderEncTable(){
   // ── Add 7: populate team filter dropdown on first render ──
@@ -1535,7 +1566,7 @@ function renderEncTable(){
   const teamFilter = teamSel ? teamSel.value : '';
 
   // Apply global FC + team filter, sorted by encounters desc
-  let fc=[...FC].filter(c=>c.hc&&c.enc>0);
+  let fc=[...FC].filter(c=>c.enc>0);
   if(teamFilter) fc=fc.filter(c=>c.bc&&c.bc.team===teamFilter);
   fc.sort((a,b)=>b.enc-a.enc);
 
@@ -1824,13 +1855,13 @@ function initCharts(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
   // personas
   const pc={Power:0,Std:0,Adm:0,Cas:0};
-  CLIENTS.filter(c=>c.hc).forEach(c=>{if(c.per==='Power Clinical User')pc.Power++;else if(c.per==='Standard Clinical User')pc.Std++;else if(c.per==='Admin/Power Support')pc.Adm++;else pc.Cas++;});
+  CLIENTS.forEach(c=>{if(c.per==='Power Clinical User')pc.Power++;else if(c.per==='Standard Clinical User')pc.Std++;else if(c.per==='Admin/Power Support')pc.Adm++;else pc.Cas++;});
   new Chart(document.getElementById('c-pr'),{type:'doughnut',data:{
     labels:['Power Clinical','Standard Clinical','Admin/Support','Casual'],
     datasets:[{data:[pc.Power,pc.Std,pc.Adm,pc.Cas],backgroundColor:[GR,OR,PU,'#E0DDD8'],borderWidth:3,borderColor:'white',hoverOffset:6}]
   },options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:11,font:{size:11}}}}}});
   // top clients
-  const tc=[...CLIENTS].filter(c=>c.hc&&c.enc>0).sort((a,b)=>b.enc-a.enc).slice(0,10);
+  const tc=[...CLIENTS].filter(c=>c.enc>0).sort((a,b)=>b.enc-a.enc).slice(0,10);
   new Chart(document.getElementById('c-tc'),{type:'bar',data:{
     labels:tc.map(c=>c.name.length>24?c.name.slice(0,24)+'…':c.name),
     datasets:[{label:'Enc (30d)',data:tc.map(c=>c.enc),backgroundColor:tc.map((_,i)=>i===0?OR:`rgba(247,148,29,${0.85-i*0.07})`),borderRadius:6,barThickness:20}]
@@ -1907,7 +1938,7 @@ function initCharts(){
   // scatter
   const sDS=Object.entries(PC).map(([per,col])=>({
     label:per,
-    data:CLIENTS.filter(c=>c.hc&&c.enc>0&&c.per===per).map(c=>({x:c.enc,y:c.ai,r:Math.max(6,Math.min(20,c.da*0.72)),n:c.name})),
+    data:CLIENTS.filter(c=>c.enc>0&&c.per===per).map(c=>({x:c.enc,y:c.ai,r:Math.max(6,Math.min(20,c.da*0.72)),n:c.name})),
     backgroundColor:col+'99',borderColor:col,borderWidth:1.5
   }));
   new Chart(document.getElementById('c-sc'),{type:'bubble',data:{datasets:sDS},options:{
