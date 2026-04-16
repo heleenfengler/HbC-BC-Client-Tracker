@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HbC Clinical · BC Client Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --or:#F7941D;--ch:#414042;--pu:#7757EC;--bu:#FF4D00;--gr:#75EB9E;
+  --wh:#fff;--sf:#F6F5F2;--sf2:#ECEAE6;--bd:#E2DFD9;--mu:#8A8785;
+  --r-lg:20px;--r:12px;--r-sm:8px;
+  --sh:0 2px 10px rgba(0,0,0,0.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Figtree',sans-serif;background:var(--sf);color:var(--ch);font-size:14px;line-height:1.5;min-height:100vh;}
+
+/* AUTH */
+#auth-gate{position:fixed;inset:0;background:var(--ch);display:flex;align-items:center;justify-content:center;z-index:2000;overflow:hidden;}
+#auth-gate::before{content:'';position:absolute;width:700px;height:700px;border-radius:50%;border:90px solid rgba(247,148,29,0.07);top:-250px;right:-250px;}
+#auth-gate::after{content:'';position:absolute;width:450px;height:450px;border-radius:50%;border:70px solid rgba(247,148,29,0.04);bottom:-180px;left:-120px;}
+.auth-card{background:var(--wh);border-radius:var(--r-lg);padding:48px;width:440px;position:relative;z-index:1;box-shadow:0 24px 80px rgba(0,0,0,0.4);}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.lc{width:46px;height:46px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;}
+.lc svg{width:22px;height:22px;}
+.lw{font-size:18px;font-weight:900;color:var(--ch);}
+.lw em{color:var(--or);font-style:normal;}
+.lt{font-size:11px;color:var(--mu);}
+.auth-card h2{font-size:22px;font-weight:900;margin-bottom:6px;}
+.auth-card>p{font-size:13px;color:var(--mu);margin-bottom:28px;}
+.role-row{display:flex;gap:8px;margin-bottom:20px;}
+.rb{flex:1;padding:10px 12px;border-radius:var(--r-sm);border:2px solid var(--bd);background:var(--sf);cursor:pointer;font-family:'Figtree',sans-serif;font-size:13px;font-weight:700;color:var(--mu);transition:all .15s;}
+.rb.active{border-color:var(--or);background:rgba(247,148,29,0.08);color:var(--or);}
+.ai{width:100%;padding:12px 14px;border:2px solid var(--bd);border-radius:var(--r-sm);font-family:'Figtree',sans-serif;font-size:14px;outline:none;transition:border .15s;margin-bottom:14px;}
+.ai:focus{border-color:var(--or);}
+.ab{width:100%;padding:13px;background:var(--or);color:#fff;border:none;border-radius:var(--r-sm);font-family:'Figtree',sans-serif;font-size:15px;font-weight:800;cursor:pointer;}
+.ab:hover{opacity:.9;}
+.ac{margin-top:18px;padding:14px;background:var(--sf);border-radius:var(--r-sm);font-size:12px;color:var(--mu);}
+.ac strong{color:var(--ch);}
+.ae{color:var(--bu);font-size:13px;margin-bottom:12px;display:none;}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--ch);color:#fff;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.25);}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.hdr-brand{display:flex;align-items:center;gap:12px;}
+.hc{width:36px;height:36px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;}
+.hc svg{width:18px;height:18px;}
+.ht{font-size:15px;font-weight:900;} .ht em{color:var(--or);font-style:normal;}
+.hs{font-size:11px;color:rgba(255,255,255,0.4);}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.lag{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);padding:5px 11px;border-radius:20px;font-size:12px;color:rgba(255,255,255,0.6);}
+.ld{width:7px;height:7px;border-radius:50%;background:#FCD34D;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.up{display:flex;align-items:center;gap:8px;padding:4px 11px;border-radius:20px;background:rgba(255,255,255,0.08);}
+.ua{width:28px;height:28px;border-radius:50%;background:var(--or);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.un{font-size:12px;font-weight:700;} .ur{font-size:10px;color:rgba(255,255,255,0.4);}
+.lo{font-size:11px;color:rgba(255,255,255,0.35);cursor:pointer;} .lo:hover{color:var(--or);}
+
+/* TABS */
+.tabs{display:flex;padding:0 28px;}
+.tab{padding:10px 18px;font-size:13px;font-weight:700;color:rgba(255,255,255,0.45);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:rgba(255,255,255,0.75);}
+.tab.active{color:#fff;border-bottom-color:var(--or);}
+.tab.hidden{display:none;}
+.tbg{background:var(--bu);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;font-weight:800;}
+
+/* GLOBAL FILTER BAR */
+.gfb{background:var(--wh);border-bottom:2px solid var(--bd);padding:9px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:86px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.gfb label{font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.fs{padding:7px 10px;border:1.5px solid var(--bd);border-radius:var(--r-sm);font-family:'Figtree',sans-serif;font-size:13px;background:var(--wh);color:var(--ch);outline:none;transition:border .15s;height:34px;}
+.fs:focus{border-color:var(--or);}
+.fs-q{flex:1;min-width:280px;}
+.fc-btn{padding:6px 14px;background:var(--sf2);border:1.5px solid var(--bd);border-radius:var(--r-sm);font-family:'Figtree',sans-serif;font-size:12px;font-weight:700;color:var(--mu);cursor:pointer;height:34px;white-space:nowrap;}
+.fc-btn:hover{background:var(--or);color:#fff;border-color:var(--or);}
+.fr{font-size:12px;color:var(--mu);font-weight:600;white-space:nowrap;}
+.sep{width:1px;height:22px;background:var(--bd);}
+
+/* MAIN */
+main{flex:1;padding:22px 28px;max-width:1440px;margin:0 auto;width:100%;}
+.sec{display:none;} .sec.active{display:block;}
+.shdr{margin-bottom:18px;}
+.shdr h2{font-size:21px;font-weight:900;color:var(--ch);}
+.shdr p{font-size:13px;color:var(--mu);margin-top:3px;}
+
+/* KPI */
+.kg4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+.kg5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px;}
+.kpi{background:var(--wh);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+.kor::before{background:var(--or);} .kpu::before{background:var(--pu);} .kgr::before{background:var(--gr);} .kbu::before{background:var(--bu);} .kch::before{background:var(--ch);}
+.klbl{font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.kval{font-size:30px;font-weight:900;color:var(--ch);line-height:1;}
+.ksub{font-size:12px;color:var(--mu);margin-top:5px;}
+.du{color:#16a34a;font-weight:700;} .dd{color:var(--bu);font-weight:700;} .dw{color:#d97706;font-weight:700;}
+
+/* CARDS */
+.card{background:var(--wh);border-radius:var(--r);padding:20px;box-shadow:var(--sh);}
+.ch3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:18px;}
+.ch2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.ch2e{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.cfull{margin-bottom:18px;}
+.chw{position:relative;} .h240{height:240px;} .h280{height:280px;} .h320{height:320px;}
+.ct{font-size:14px;font-weight:800;color:var(--ch);margin-bottom:3px;}
+.cs{font-size:12px;color:var(--mu);margin-bottom:14px;}
+
+/* TABLE */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 12px;font-size:10px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bd);white-space:nowrap;background:var(--sf);}
+td{padding:9px 12px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.tn{font-weight:700;} .tm{font-size:11px;color:var(--mu);}
+
+/* BADGES */
+.b{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.ba{background:rgba(117,235,158,.2);color:#15803d;}
+.bi{background:rgba(255,77,0,.12);color:var(--bu);}
+.bt{background:rgba(247,148,29,.15);color:#c26b00;}
+.bt0{background:rgba(119,87,236,.12);color:var(--pu);}
+.bt1{background:rgba(247,148,29,.12);color:#c26b00;}
+.bpow{background:rgba(117,235,158,.2);color:#15803d;}
+.bstd{background:rgba(247,148,29,.12);color:#c26b00;}
+.badm{background:rgba(119,87,236,.12);color:var(--pu);}
+.bcas{background:var(--sf2);color:var(--mu);}
+.bcri{background:rgba(255,77,0,.12);color:var(--bu);}
+.bwrn{background:rgba(245,158,11,.15);color:#b45309;}
+.binf{background:rgba(119,87,236,.12);color:var(--pu);}
+.hd{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+.hdg{background:#16a34a;} .hdy{background:#d97706;} .hdr2{background:var(--bu);}
+.pma-nova{background:rgba(119,87,236,0.14);color:var(--pu);border:1px solid rgba(119,87,236,0.3);}
+.pma-mps{background:rgba(247,148,29,0.12);color:#b45300;border:1px solid rgba(247,148,29,0.3);}
+.ver-ok{color:#16a34a;font-weight:700;font-size:11px;}
+.ver-old{color:var(--bu);font-weight:700;font-size:11px;}
+.ver-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.ver-chip.ok{background:rgba(22,163,74,0.1);color:#16a34a;}
+.ver-chip.old{background:rgba(255,77,0,0.1);color:var(--bu);}
+
+/* EXEC */
+.thdr{display:flex;align-items:center;gap:10px;margin:20px 0 8px;padding:10px 16px;background:var(--ch);border-radius:var(--r-sm);color:#fff;}
+.thdr h4{font-size:13px;font-weight:800;flex:1;}
+.tstat{font-size:12px;color:rgba(255,255,255,0.55);padding:0 12px;border-left:1px solid rgba(255,255,255,0.15);}
+.tstat strong{color:#fff;}
+.bcc{background:var(--wh);border-radius:var(--r);margin-bottom:10px;overflow:hidden;border:1.5px solid var(--bd);box-shadow:var(--sh);}
+.bcch{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;}
+.bcch:hover{background:var(--sf);}
+.bav{width:36px;height:36px;border-radius:50%;background:var(--or);font-size:12px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bnam{font-size:14px;font-weight:800;} .bmet{font-size:11px;color:var(--mu);}
+.bstats{display:flex;gap:0;margin-left:auto;}
+.bst{padding:0 16px;text-align:center;border-left:1px solid var(--bd);}
+.bstv{font-size:18px;font-weight:900;line-height:1;} .bstl{font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+.bstv.or{color:var(--or);} .bstv.bu{color:var(--bu);} .bstv.gr{color:#16a34a;}
+.bcpw{padding:0 16px 14px;display:none;}
+.bcpw.open{display:block;}
+.tog{font-size:11px;color:var(--mu);font-weight:700;transition:transform .2s;margin-left:8px;}
+.tog.open{transform:rotate(180deg);}
+
+/* ADOPTION */
+.adpr{margin-bottom:0;border-bottom:1px solid var(--bd);}
+.adpr:last-child{border-bottom:none;}
+.adp-cat-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background .15s;user-select:none;}
+.adp-cat-row:hover{background:var(--sf);}
+.adp-cat-row.open{background:var(--sf);}
+.adp-cat-icon{font-size:11px;color:var(--mu);transition:transform .2s;flex-shrink:0;width:12px;}
+.adp-cat-row.open .adp-cat-icon{transform:rotate(90deg);}
+.adp-cat-label{font-size:13px;font-weight:700;flex:1;}
+.adp-cat-pct{font-size:12px;font-weight:700;min-width:36px;text-align:right;}
+.adp-cat-count{font-size:11px;color:var(--mu);min-width:60px;text-align:right;}
+.adp-track{height:6px;background:var(--sf2);border-radius:3px;overflow:hidden;width:80px;flex-shrink:0;}
+.adpf{height:100%;border-radius:3px;}
+.adp-features{display:none;background:var(--sf);border-top:1px solid var(--bd);}
+.adp-features.open{display:block;}
+.adp-feat-row{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 36px;border-bottom:1px solid rgba(0,0,0,0.04);}
+.adp-feat-row:last-child{border-bottom:none;}
+.adp-feat-name{font-size:12px;color:var(--ch);flex:1;font-family:monospace;letter-spacing:-.2px;}
+.adp-feat-bar-wrap{width:100px;flex-shrink:0;}
+.adp-feat-bar-bg{height:5px;background:var(--bd);border-radius:3px;overflow:hidden;}
+.adp-feat-bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+.adp-feat-count{font-size:11px;color:var(--mu);min-width:52px;text-align:right;}
+.adph{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;font-weight:700;}
+.adpt{height:7px;background:var(--sf2);border-radius:4px;overflow:hidden;}
+.adpf{height:100%;border-radius:4px;}
+
+/* ANOMALY */
+.ag{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+.ac2{background:var(--wh);border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:4px solid transparent;}
+.ac2.cr{border-left-color:var(--bu);} .ac2.wa{border-left-color:#f59e0b;} .ac2.in{border-left-color:var(--pu);}
+.acnt{font-size:38px;font-weight:900;line-height:1;}
+.ac2.cr .acnt{color:var(--bu);} .ac2.wa .acnt{color:#f59e0b;} .ac2.in .acnt{color:var(--pu);}
+.albl{font-size:13px;font-weight:700;margin-top:5px;}
+.adsc{font-size:12px;color:var(--mu);margin-top:3px;}
+
+/* INFO BAR */
+.ib{display:flex;align-items:flex-start;gap:10px;background:rgba(245,158,11,0.07);border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;line-height:1.5;}
+.ib svg{flex-shrink:0;margin-top:1px;}
+
+/* ARCH */
+.arch{background:linear-gradient(135deg,var(--ch) 0%,#2d2c2e 100%);border-radius:var(--r-lg);padding:24px 28px;margin-top:18px;color:#fff;position:relative;overflow:hidden;}
+.arch::after{content:'';position:absolute;width:300px;height:300px;border-radius:50%;border:50px solid rgba(247,148,29,0.08);top:-120px;right:-80px;}
+.arch h3{font-size:15px;font-weight:800;margin-bottom:4px;}
+.arch>p{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:18px;}
+.archg{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;position:relative;z-index:1;}
+.archc h4{font-size:11px;font-weight:800;color:var(--or);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.archc li{font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:4px;list-style:none;padding-left:14px;position:relative;}
+.archc li::before{content:'→';position:absolute;left:0;color:var(--or);font-size:10px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--mu);}
+.empty .ei{font-size:32px;margin-bottom:8px;}
+.empty p{font-weight:700;} .empty small{font-size:12px;}
+
+@media(max-width:1100px){
+  .kg4,.kg5{grid-template-columns:repeat(2,1fr);}
+  .ch3,.ch2,.ch2e{grid-template-columns:1fr;}
+  .ag{grid-template-columns:repeat(2,1fr);}
+  .archg{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+      <div><div class="lw">Hb<em>C</em> Clinical</div><div class="lt">BC Client Tracker · v2</div></div>
+    </div>
+    <h2>Sign in</h2>
+    <p>Select your role and enter your password to continue.</p>
+    <div class="role-row">
+      <button class="rb active" onclick="selRole('bc',this)">BC / Manager</button>
+      <button class="rb" onclick="selRole('viewer',this)">General Viewer</button>
+      <button class="rb" onclick="selRole('admin',this)" style="background:rgba(119,87,236,.15);border-color:rgba(119,87,236,.5);color:#c4b5fd">Admin</button>
+    </div>
+    <div class="ae" id="ae">Incorrect password — please try again.</div>
+    <input class="ai" type="password" id="apwd" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="ab" onclick="doLogin()">Sign in →</button>
+    <div class="ac"><strong>BC / Manager:</strong> HbC@BC2026 &nbsp;·&nbsp; <strong>Viewer:</strong> HbC@View2026</div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="hdr-top">
+      <div class="hdr-brand">
+        <div class="hc"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <div><div class="ht">Hb<em>C</em> Clinical — BC Client Tracker</div><div class="hs">Feature &amp; encounter adoption · Business consultant view</div></div>
+      </div>
+      <div class="hdr-right">
+        <div class="lag"><div class="ld"></div><span>24hr data lag · to: <strong id="lag-date"></strong></span></div>
+        <div class="up"><div class="ua" id="ua">BC</div><div><div class="un" id="uname">BC Admin</div><div class="ur" id="urole">Full access</div></div></div>
+        <span class="lo" onclick="logout()">Sign out</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-t="exec" onclick="goTab('exec',this)">Executive summary</div>
+      <div class="tab" data-t="overview" onclick="goTab('overview',this)">Overview</div>
+      <div class="tab" data-t="encounters" onclick="goTab('encounters',this)">Encounters</div>
+      <div class="tab" data-t="features" onclick="goTab('features',this)">Features</div>
+      <div class="tab bc-only" data-t="bcview" onclick="goTab('bcview',this)">BC view</div>
+      <div class="tab bc-only" data-t="anomalies" onclick="goTab('anomalies',this)">Anomalies <span class="tbg">16</span></div>
+    </div>
+  </header>
+
+  <!-- GLOBAL FILTER BAR -->
+  <div class="gfb">
+    <label>Filter</label>
+    <select class="fs" id="gf-bc" onchange="applyF()"><option value="">All BCs</option></select>
+    <select class="fs" id="gf-team" onchange="applyF()"><option value="">All teams</option></select>
+    <div class="sep"></div>
+    <input class="fs fs-q" id="gf-q" placeholder="Search by practice name / BPN / TPN / treating provider name…" oninput="applyF()">
+    <button class="fc-btn" onclick="clearF()">✕ Clear filters</button>
+    <div class="sep"></div>
+    <div class="fr" id="fr">Showing all 1 290 clients</div>
+    <div id="live-status" style="font-size:11px;color:var(--mu);white-space:nowrap" title="Data source status"></div>
+  <!-- DATA FRESHNESS BANNER — admin-only detail strip -->
+  <div id="freshness-bar" style="display:none;background:rgba(119,87,236,.08);border-bottom:1px solid rgba(119,87,236,.2);padding:6px 20px;font-size:11px;color:var(--ch);display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+    <span style="font-weight:800;color:var(--pu);text-transform:uppercase;letter-spacing:.5px;font-size:10px">📊 Data status</span>
+    <span id="fr-refreshed">Last refresh: —</span>
+    <span id="fr-source">Source: embedded</span>
+    <span id="fr-version">Latest app version: <strong id="fr-ver">—</strong></span>
+    <span id="fr-clients">Clients enriched: —</span>
+    <span id="fr-bc">BC ownership rows: —</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--mu)">Admin view only · nightly refresh via Apps Script at 02:00 SAST</span>
+  </div>
+
+  </div>
+
+  <main>
+
+    <!-- EXEC SUMMARY -->
+    <div class="sec active" id="s-exec">
+      <div id="embedded-warning" style="background:rgba(247,148,29,.12);border:1px solid rgba(247,148,29,.5);border-radius:8px;padding:12px 16px;margin:0 0 4px 0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:20px;flex-shrink:0" id="ew-icon">⏳</span>
+        <span style="flex:1" id="ew-msg"><strong>Connecting to live data…</strong> — If data does not appear within 20 seconds, check the connection status in the filter bar above.</span>
+        <button onclick="loadLiveData()" id="ew-retry" style="background:var(--or);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">↺ Retry now</button>
+      </div>
+
+      <div class="shdr">
+        <h2>Executive summary</h2>
+        <p>Manager view — all BC portfolios, team rollups, and at-risk clients. Use the filter bar above to drill into a BC or team.</p>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <div style="background:rgba(117,235,158,.12);border:1px solid rgba(117,235,158,.4);border-radius:6px;padding:5px 12px;font-size:12px;color:#166534">
+            <strong>Power Clinical User</strong> — active ≥18 days in 30-day period with &gt;200 encounters
+          </div>
+          <div style="background:rgba(247,148,29,.1);border:1px solid rgba(247,148,29,.35);border-radius:6px;padding:5px 12px;font-size:12px;color:#92400e">
+            <strong>Standard Clinical User</strong> — encounter user, active but below power threshold (&gt;50 encounters)
+          </div>
+          <div style="background:rgba(119,87,236,.1);border:1px solid rgba(119,87,236,.3);border-radius:6px;padding:5px 12px;font-size:12px;color:#5b21b6">
+            <strong>Admin / Power Support</strong> — feature-heavy user with no or minimal encounters (&gt;300 feature events)
+          </div>
+          <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--mu)">
+            <strong>Casual User</strong> — low engagement across encounters and features
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIMARY KPIs -->
+      <div class="kg5">
+        <div class="kpi kor">
+          <div class="klbl">Total clients</div>
+          <div class="kval" id="ek1">—</div>
+          <div class="ksub" id="ek1s">of all clients</div>
+        </div>
+        <div class="kpi kgr">
+          <div class="klbl">Encounter clients</div>
+          <div class="kval" id="ek-enc">—</div>
+          <div class="ksub" id="ek-enc-s">at least 1 consult-complete (30d)</div>
+        </div>
+        <div class="kpi kpu">
+          <div class="klbl">Feature-only clients</div>
+          <div class="kval" id="ek-feat">—</div>
+          <div class="ksub" id="ek-feat-s">logged in · no encounters (30d)</div>
+        </div>
+        <div class="kpi kbu">
+          <div class="klbl">No activity (30d)</div>
+          <div class="kval" id="ek-inactive">—</div>
+          <div class="ksub">zero events in window</div>
+        </div>
+        <div class="kpi kch">
+          <div class="klbl">No BC assigned</div>
+          <div class="kval" id="ek5">—</div>
+          <div class="ksub">requires immediate action</div>
+        </div>
+      </div>
+
+      <!-- ENCOUNTER VS FEATURE-ONLY BREAKDOWN -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="ct" style="margin-bottom:4px">Client engagement breakdown</div>
+        <div class="cs" style="margin-bottom:14px">How clients are using the platform in the last 30 days · filtered set</div>
+
+        <!-- Stacked bar -->
+        <div style="display:flex;border-radius:8px;overflow:hidden;height:32px;margin-bottom:10px">
+          <div id="bar-enc"  style="background:var(--or);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;transition:width .5s;min-width:0;overflow:hidden;white-space:nowrap"></div>
+          <div id="bar-feat" style="background:var(--pu);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;transition:width .5s;min-width:0;overflow:hidden;white-space:nowrap"></div>
+          <div id="bar-none" style="background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--mu);transition:width .5s;min-width:0;overflow:hidden;white-space:nowrap"></div>
+        </div>
+
+        <!-- Legend + numbers -->
+        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;border-radius:3px;background:var(--or);flex-shrink:0"></div>
+            <span><strong id="leg-enc">—</strong> encounter clients</span>
+            <span style="color:var(--mu)" id="leg-enc-pct"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;border-radius:3px;background:var(--pu);flex-shrink:0"></div>
+            <span><strong id="leg-feat">—</strong> feature-only clients</span>
+            <span style="color:var(--mu)" id="leg-feat-pct"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;border-radius:3px;background:var(--sf2);border:1px solid var(--bd);flex-shrink:0"></div>
+            <span><strong id="leg-none">—</strong> no activity</span>
+            <span style="color:var(--mu)" id="leg-none-pct"></span>
+          </div>
+        </div>
+
+        <!-- Per-team breakdown table -->
+        <div style="margin-top:18px">
+          <div style="font-size:12px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">By team</div>
+          <div class="tw"><table id="team-breakdown-table">
+            <thead><tr>
+              <th>Team</th>
+              <th>Total clients</th>
+              <th>Encounter</th>
+              <th>Feature-only</th>
+              <th>No activity</th>
+              <th>% encounter</th>
+              <th>No BC</th>
+            </tr></thead>
+            <tbody id="team-breakdown-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- PMA split + version -->
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div class="ct" style="margin-bottom:8px">PMA split · filtered clients</div>
+            <div style="display:flex;border-radius:8px;overflow:hidden;height:28px;margin-bottom:6px">
+              <div id="pma-mps-bar" style="background:var(--or);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;transition:width .4s">MPS</div>
+              <div id="pma-nova-bar" style="background:var(--pu);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;transition:width .4s">Nova</div>
+            </div>
+            <div style="display:flex;gap:18px;font-size:12px">
+              <span><strong id="pma-mps-n">—</strong> myMPS</span>
+              <span><strong id="pma-nova-n">—</strong> Nova</span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div class="ct" style="margin-bottom:8px">App version currency</div>
+            <div id="ver-summary-wrap" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ch2e">
+        <div class="card"><div class="ct">Encounter users vs feature-only (30 days)</div><div class="cs">Daily active user split across all clients</div><div class="chw h240"><canvas id="c-el"></canvas></div></div>
+        <div class="card"><div class="ct">Portfolio by team</div><div class="cs">Client count per regional team</div><div class="chw h240"><canvas id="c-et"></canvas></div></div>
+      </div>
+
+      <!-- Speciality split -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="ct" style="margin-bottom:4px">Client speciality split</div>
+        <div class="cs" style="margin-bottom:14px">From BCOwnership sheet (col K) · filtered client set · encounter vs feature-only per speciality</div>
+        <div id="speciality-chart"></div>
+      </div>
+
+      <div id="exec-list"></div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="sec" id="s-overview">
+      <div class="shdr">
+        <h2>Overview</h2>
+        <p>Client base health, activity trends and feature engagement · filtered set</p>
+        <div style="margin-top:10px">
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Hide usage definitions':'▶ Show usage definitions'"
+            style="font-size:12px;font-weight:700;color:var(--or);background:none;border:none;cursor:pointer;padding:0">
+            ▶ Show usage definitions
+          </button>
+          <div style="display:none;margin-top:10px;padding:14px 16px;background:var(--sf2);border-radius:var(--r-sm);border:1px solid var(--bd)">
+            <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Usage definitions</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;font-size:12px">
+              <div><strong>Encounter client</strong> — had at least 1 consult-complete event in the 30-day window (i.e. a billing encounter was completed in HbC)</div>
+              <div><strong>Feature-only client</strong> — logged into HbC and used features but did not complete any consult-complete events</div>
+              <div><strong>No activity</strong> — no events recorded in the 30-day window (client may still be contracted)</div>
+              <div><strong>Power Clinical User</strong> — active on ≥18 days within the 30-day period with &gt;200 total encounters</div>
+              <div><strong>Standard Clinical User</strong> — encounter user, active but below the power threshold (&gt;50 encounters)</div>
+              <div><strong>Admin / Power Support</strong> — heavy feature usage (&gt;300 feature events) with minimal or no encounters</div>
+              <div><strong>Casual User</strong> — low engagement — few encounters and few feature events in the window</div>
+              <div><strong>Days active</strong> — number of distinct calendar days on which any usage event was recorded for that practice in the 30-day window</div>
+              <div><strong>AI events</strong> — events from category "5. AI Features" (Nora/Clinical Assistant usage)</div>
+              <div><strong>Feature events</strong> — all events excluding Noise / Passive category (passive background events are excluded from meaningful usage counts)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kg4">
+        <div class="kpi kor"><div class="klbl">Active clients</div><div class="kval" id="ok1">—</div><div class="ksub" id="ok1s">of filtered set</div></div>
+        <div class="kpi kgr"><div class="klbl">Enc. users avg/day</div><div class="kval" id="ok2">—</div><div class="ksub"><span class="du">+8.2% WoW</span></div></div>
+        <div class="kpi kpu"><div class="klbl">AI events (30d)</div><div class="kval" id="ok3">—</div><div class="ksub"><span class="du">+31% MoM</span></div></div>
+        <div class="kpi kbu"><div class="klbl">% encounter users</div><div class="kval">67%</div><div class="ksub">Target ≥70%</div></div>
+      </div>
+      <div class="ch3">
+        <div class="card"><div class="ct">Daily active users (30 days)</div><div class="cs">Encounter users vs feature-only users</div><div class="chw h240"><canvas id="c-du"></canvas></div></div>
+        <div class="card"><div class="ct">User personas (90 days)</div><div class="cs">Based on encounter volume and activity</div><div class="chw h240"><canvas id="c-pr"></canvas></div></div>
+      </div>
+      <div class="ch2">
+        <div class="card"><div class="ct">Top clients by encounter volume</div><div class="cs">Last 30 days · filtered set</div><div class="chw h280"><canvas id="c-tc"></canvas></div></div>
+        <div class="card"><div class="ct">Feature category share</div><div class="cs">% of total events · 30 days</div><div class="chw h280"><canvas id="c-cp"></canvas></div></div>
+      </div>
+      <div class="arch">
+        <h3>Data architecture &amp; refresh strategy</h3>
+        <p>How this dashboard connects to your Azure pipeline and how to keep it current</p>
+        <div class="archg">
+          <div class="archc"><h4>📊 Data pipeline</h4><ul>
+            <li>Azure App Insights → Azure Logic App</li><li>Daily CSV export (7-day chunks)</li>
+            <li>Grain: User · Day · Feature</li><li>~300k rows/month</li><li>Google Drive receives dated CSV daily</li>
+          </ul></div>
+          <div class="archc"><h4>🔄 GitHub Actions refresh</h4><ul>
+            <li>Nightly cron at 02:00 SAST</li><li>Service account downloads latest CSV</li>
+            <li>Python aggregates → agg.json</li><li>Auto-commits → GitHub Pages deploys</li><li>BC ownership via Sheets API v4</li>
+          </ul></div>
+          <div class="archc"><h4>🔒 Production security</h4><ul>
+            <li>Azure Static Web Apps + Azure AD</li><li>Uses existing HbC Microsoft accounts</li>
+            <li>Alt: Cloudflare Pages + Cloudflare Access</li><li>Free tier ≤50 users</li><li>Never use GitHub Pages for PHI</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENCOUNTERS -->
+    <div class="sec" id="s-encounters">
+      <div class="shdr"><h2>Encounters</h2><p><code>consult-complete</code> is the North Star metric · global filters apply</p></div>
+      <div class="kg4">
+        <div class="kpi kor"><div class="klbl">Total encounters (30d)</div><div class="kval" id="enk1">—</div><div class="ksub"><span class="du">+6.4% vs prior 30d</span></div></div>
+        <div class="kpi kgr"><div class="klbl">Avg enc / user / day</div><div class="kval">4.2</div><div class="ksub">Active encounter users only</div></div>
+        <div class="kpi kpu"><div class="klbl">Peak day (30d)</div><div class="kval">9 812</div><div class="ksub">Wednesday trend</div></div>
+        <div class="kpi kbu"><div class="klbl">0 encounters 14d+</div><div class="kval" id="enk4">—</div><div class="ksub"><span class="dd">↑ 2 vs prior period</span></div></div>
+      </div>
+      <div class="cfull card">
+        <div class="ct">Daily encounter completions</div><div class="cs">Raw total + 7-day moving average · 30 days</div>
+        <div class="chw h280"><canvas id="c-ea"></canvas></div>
+      </div>
+      <div class="cfull card">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+          <div class="ct" style="margin:0">Client encounter detail</div>
+          <select id="enc-team-filter" onchange="renderEncTable()" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--ch)">
+            <option value="">All teams</option>
+          </select>
+        </div>
+        <div class="cs" style="margin-top:0">Filtered set · ranked by 30-day encounter volume · BPN, TPN and treating providers included</div>
+        <div class="tw"><table>
+          <thead><tr><th>#</th><th>Practice name</th><th>BPN</th><th>Treating providers (TPN)</th><th>BC</th><th>Team</th><th>PMA</th><th>App version</th><th>Persona</th><th>Enc (30d)</th><th>Avg/day</th><th>Status</th></tr></thead>
+          <tbody id="enc-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="sec" id="s-features">
+      <div class="shdr"><h2>Features</h2><p>Category-level usage trends and AI feature adoption depth · filtered set</p></div>
+      <div class="kg4">
+        <div class="kpi kor"><div class="klbl">Feature events (30d)</div><div class="kval" id="fek1">—</div><div class="ksub"><span class="du">+18% MoM</span></div></div>
+        <div class="kpi kgr"><div class="klbl">Top category</div><div class="kval" style="font-size:17px">Encounters</div><div class="ksub">21% of all events</div></div>
+        <div class="kpi kpu"><div class="klbl">AI adoption</div><div class="kval">43%</div><div class="ksub">Of active encounter users</div></div>
+        <div class="kpi kbu"><div class="klbl">Feature-only users</div><div class="kval">3 100</div><div class="ksub">Daily avg · no consult-complete</div></div>
+      </div>
+      <div class="ch3">
+        <div class="card">
+          <div class="ct" style="margin-bottom:4px">Feature category trends</div>
+          <div class="cs" style="margin-bottom:10px">Daily event volume · 30 days · select categories to compare</div>
+          <div id="feat-cat-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+          <div class="chw h280"><canvas id="c-st"></canvas></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 18px 12px"><div class="ct">Feature usage by category</div><div class="cs">Click any category to expand individual features · % of meaningful events (Noise excluded from share)</div></div>
+          <div id="adp-bars"></div>
+        </div>
+      </div>
+      <div class="cfull card">
+        <div class="ct">Encounters vs AI feature usage · per client (90 days)</div>
+        <div class="cs">Bubble size = days active · colour = persona · tech-forward clients appear top-right</div>
+        <div class="chw h320"><canvas id="c-sc"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BC VIEW -->
+    <div class="sec" id="s-bcview">
+      <div class="shdr"><h2>BC view</h2><p>Full client portfolio with BPN, TPN and treating provider detail · global filters apply</p></div>
+      <div class="ib">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>⚠️ <strong>TODO — Automation required:</strong> BC names &amp; teams are currently loaded from a <strong>manually exported file</strong> of "Hb Clinical contracts from 3C" (HbCDataset · col I &amp; J). This must be automated via <strong>Google Sheets API v4</strong> with a nightly service-account pull so new BCs and team reassignments reflect without a code change. Backlog item: <em>"Automate BC ownership lookup from 3C sheet"</em>. BPN and TPN are synthetic for this prototype.</span>
+      </div>
+      <div class="card">
+        <div class="tw"><table>
+          <thead><tr><th>Practice name</th><th>BPN</th><th>Treating providers</th><th>BC</th><th>Team</th><th>PMA</th><th>App version</th><th>Contract</th><th>Tier</th><th>Status</th><th>Enc (30d)</th><th>Feature events</th><th>Last active</th><th>Persona</th></tr></thead>
+          <tbody id="bv-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ANOMALIES -->
+    <div class="sec" id="s-anomalies">
+      <div class="shdr"><h2>Anomalies</h2><p>Clients requiring BC or management action · search filter applies</p></div>
+      <div class="ib">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>24-hour data lag applies — anomaly data reflects to end of <strong id="al-date"></strong>.</span>
+      </div>
+      <div class="ag">
+        <div class="ac2 cr"><div class="acnt">5</div><div class="albl">No BC assigned</div><div class="adsc">Active usage · no owner in 3C</div></div>
+        <div class="ac2 cr"><div class="acnt">2</div><div class="albl">Usage without contract</div><div class="adsc">Events recorded · no agreement</div></div>
+        <div class="ac2 wa"><div class="acnt">6</div><div class="albl">No encounters 14d+</div><div class="adsc">Logins but zero consult-complete</div></div>
+        <div class="ac2 wa"><div class="acnt">3</div><div class="albl">Usage drop &gt;40% WoW</div><div class="adsc">Significant week-on-week decline</div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Anomaly action list</div>
+        <div class="cs" style="margin-bottom:14px">Includes BPN and treating provider for CRM lookup · sorted by severity</div>
+        <div class="tw"><table>
+          <thead><tr><th>Practice</th><th>BPN</th><th>PMA</th><th>App version</th><th>Treating provider</th><th>BC</th><th>Anomaly type</th><th>Severity</th><th>Detail</th><th>Suggested action</th></tr></thead>
+          <tbody id="an-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+
+
+// ── DATES ──
+const today=new Date(),yest=new Date(today);yest.setDate(today.getDate()-1);
+const fmt=d=>d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'});
+const fmts=d=>d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
+document.querySelectorAll('#lag-date,#al-date').forEach(e=>e.textContent=fmt(yest));
+function getDates(n){const o=[];for(let i=n;i>=1;i--){const d=new Date(yest);d.setDate(d.getDate()-i);o.push(fmts(d));}return o;}
+const D30=getDates(30);
+
+// ── COLOURS ──
+const OR='#F7941D',CH='#414042',PU='#7757EC',BU='#FF4D00',GR='#75EB9E';
+const CC={'Encounters':OR,'Clinical Doc':'#4A90D9','Scripts':PU,'Pathology':GR,'AI Features':BU,'Preventative Care':'#22c55e','Task Mgmt':'#f59e0b','Customisation':'#a78bfa'};
+const CATS=Object.keys(CC);
+
+// ── BCS ──
+// ── BC & TEAM DATA ─────────────────────────────────────────────────────────
+// ⚠️ TODO: This list is currently hard-coded from a manual export of
+// "Hb Clinical contracts from 3C" (HbCDataset tab, cols I & J).
+// ACTION REQUIRED: Automate via Google Sheets API v4 (service account nightly
+// pull) so new BCs and team reassignments reflect automatically without a
+// code change. Track in backlog as: "Automate BC ownership lookup from 3C sheet".
+// ─────────────────────────────────────────────────────────────────────────────
+function initials(name){return name.split(' ').filter(w=>w&&!/^(van|de|du|le)$/i.test(w)).map(w=>w[0].toUpperCase()).slice(0,2).join('');}
+const BCS_RAW=[
+  // name, team
+  ['Amen Ndou','Meraki OutboundBC-GP'],
+  ['Annie Rossouw','HB Bureau BCs'],
+  ['Avesh Manguru','iHealth Prod-Spec'],
+  ['Azasiphe Nolutshungu','Fulfillment'],
+  ['Aziza Basson','iHealth Prod-Spec'],
+  ['Blessings Maturure','Fulfillment'],
+  ['Bongi Mota','Meraki OutboundBC-GP'],
+  ['Cindy Lutchmia','HB Bureau BCs'],
+  ['Cloudmed Free State','OutboundBC-FreeState'],
+  ['Dhanesh Moonsamy','iHealth Prod-Spec'],
+  ['Digital Support','Meraki Inbound BC'],
+  ['Doulene Mulder','Meraki Inbound BC'],
+  ['Fabian Lee','Fulfillment'],
+  ['Felicia Sefatsane','Fulfillment'],
+  ['Hlengiwe Radebe','Meraki OutboundBC-Coastal'],
+  ['Jayde Brooks','Meraki OutboundBC-Coastal'],
+  ['Julian Marlon Philips','Meraki Inbound BC'],
+  ['Lindelwa Adonisi','Meraki Inbound BC'],
+  ['Litha Ngwendu','Meraki OutboundBC-GP'],
+  ['Lizelle Gounden','iHealth Prod-Spec'],
+  ['Manasseh Manuel','Fulfillment'],
+  ['Markk Velan','Meraki OutboundBC-Coastal'],
+  ['Mukundi Nethenzheni','Meraki OutboundBC-GP'],
+  ['Ntuthuzelo Nyoka','Meraki OutboundBC-Coastal'],
+  ['Patronella Tlou','Meraki Inbound BC'],
+  ['Prince Tshimedzi','Meraki OutboundBC-GP'],
+  ['Raeesah Stenekamp','Fulfillment'],
+  ['Reshma Chinsamy','Meraki Inbound BC'],
+  ['Sade Moneval','Fulfillment'],
+  ['Siksha Maharaj','HB Bureau BCs'],
+  ['Sunette Du Preez','Fulfillment'],
+  ['Suraksha Mohan','HB Bureau BCs'],
+  ['Taonatose Jiri','Meraki OutboundBC-Coastal'],
+  ['Tashirika Ayoob','HB Bureau BCs'],
+  ['Thabo Thage','Meraki OutboundBC-GP'],
+  ['Tokelo Sengoara','Meraki.Product'],
+  ['Zainab Govender','iHealth Prod-Spec'],
+  ['Zerolly Mtakane','Meraki OutboundBC-GP'],
+];
+const BCS=BCS_RAW.map(([name,team],i)=>({id:`B${i+1}`,name,team,initials:initials(name)}));
+const TEAMS=[...new Set(BCS.map(b=>b.team))];
+
+// ── PROVIDER NAMES ──
+
+// ── CLIENTS ──
+// Client pool — populated entirely from live API (BCOwnership + ClientSummary tabs).
+// Empty on load; applyLiveData() fills this array at runtime.
+const CLIENTS = [];
+
+// ── LIVE-ONLY STUBS — populated from API after load ──────────────────
+// These replace embedded synthetic arrays. Charts will be empty until
+// live data loads; TODO: push real telemetry values from AppInsights API.
+const ALL_VERSIONS = ['6.46.0','6.45.0','6.44.0','6.43.0','6.42.0','6.41.1','6.40.1','6.39.0'];
+const FEATURES_MAP = {}; // populated by applyFeaturesMap() after live load
+// Daily trend arrays — empty until live telemetry endpoint is wired up
+let dEU = D30.map(()=>0);
+let dFO = D30.map(()=>0);
+let dEC = D30.map(()=>0);
+let dMA = D30.map(()=>null);
+// Category daily arrays (one per CATS entry)
+let dCAT = CATS.map(()=>D30.map(()=>0));
+// Anomaly rows — populated from live data; empty until wired up
+let ANOMS = [];
+let LATEST_VER = '6.46.0'; // overridden at runtime from Metadata.LATEST_VERSION
+
+
+
+
+
+
+
+
+// ── AUTH ──
+let role=null,selR='bc';
+function selRole(r,btn){selR=r;document.querySelectorAll('.rb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function doLogin(){
+  const p=document.getElementById('apwd').value;
+  document.getElementById('ae').style.display='none';
+  if(selR==='bc'&&p==='HbC@BC2026'){role='bc';boot();}
+  else if((selR==='viewer'||selR==='bc')&&p==='HbC@View2026'){role='viewer';boot();}
+  else if(selR==='admin'&&p==='HbC@BC2026'){role='admin';boot();}
+  else document.getElementById('ae').style.display='block';
+}
+function logout(){sessionStorage.removeItem('hbc-role');location.reload();}
+// ── DATA CONFIG (Approach B: same-origin bundle on GitHub Pages) ─────
+// Place data.json next to this HTML (or set a path under your Pages root).
+// Bundle shape: { "generatedAt": "ISO-8601", "metadata": {...}, "bcOwnership": {...}, "clientSummary": {...} }
+// Each part matches the JSON your Apps Script already returns per ?sheet=.
+// Set DATA_BUNDLE_URL to '' to use only Apps Script below.
+const DATA_BUNDLE_URL = 'data.json';
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 0 = disabled
+// Legacy: direct Apps Script (often blocked from github.io for Workspace-only deploys)
+const WEB_APP_URL = 'https://script.google.com/a/macros/healthbridge.co.za/s/AKfycbyojd6LP-prQjr-T2JdGzEROuRqbNFFBgT-_rCQanz8Ump2q3itTkY_4n0cqSdACaDL/exec';
+const API_TOKEN   = 'hbc-dash-2026-xK9mQpLw';
+let _lastBcRows = 0;
+let _liveDataInFlight = false;
+let _liveRefreshTimer = null;
+
+function rebuildFilterDropdowns() {
+  const bcSel = document.getElementById('gf-bc');
+  const tSel = document.getElementById('gf-team');
+  if (bcSel) {
+    bcSel.innerHTML = '<option value="">All BCs</option>';
+    BCS.forEach(b => { const o = document.createElement('option'); o.value = b.name; o.textContent = b.name; bcSel.appendChild(o); });
+  }
+  if (tSel) {
+    tSel.innerHTML = '<option value="">All teams</option>';
+    TEAMS.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; tSel.appendChild(o); });
+  }
+}
+
+function scheduleLiveRefresh() {
+  if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
+  if (!AUTO_REFRESH_MS) return;
+  _liveRefreshTimer = setInterval(function() { loadLiveData(); }, AUTO_REFRESH_MS);
+}
+
+// ── LIVE DATA STATUS HELPERS ─────────────────────────────────────────
+function setLiveStatus(msg, type) {
+  // type: 'info' | 'ok' | 'warn' | 'error'
+  console.log('[HbC Live]', msg);
+  const el = document.getElementById('live-status');
+  if (!el) return;
+  const colours = { info:'var(--mu)', ok:'#16a34a', warn:'#d97706', error:'var(--bu)' };
+  el.textContent = msg;
+  el.style.color = colours[type||'info'] || 'var(--mu)';
+}
+
+function updateLagBadge(text) {
+  const el = document.querySelector('.lag');
+  if (el) el.innerHTML = '<div class="ld"></div><span>' + text + '</span>';
+}
+
+function showRetryButton() {
+  let panel = document.getElementById('diag-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'diag-panel';
+    panel.style.cssText = 'width:100%;margin-top:8px;background:rgba(255,77,0,.07);border:1.5px solid rgba(255,77,0,.3);border-radius:8px;padding:10px 14px;font-size:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;';
+    const gfb = document.querySelector('.gfb');
+    if (gfb) gfb.appendChild(panel);
+  }
+  const inIframe = (() => { try { return window.self !== window.top; } catch(e) { return true; } })();
+  const statusMsg = (document.getElementById('live-status') || {}).textContent || 'API unreachable';
+
+  // Build using DOM — avoids all quote-escaping issues in innerHTML strings
+  panel.innerHTML = '';
+
+  const icon = document.createElement('span');
+  icon.style.fontSize = '16px';
+  icon.textContent = '⚠️';
+  panel.appendChild(icon);
+
+  const msg = document.createElement('div');
+  msg.style.flex = '1';
+  msg.style.color = '#92400e';
+  if (inIframe) {
+    msg.innerHTML = '<strong>Live data unavailable in Claude preview.</strong> Download this file and open it directly in Chrome (while signed into your Healthbridge Google account) to load live data.';
+  } else {
+    msg.innerHTML = '<strong>Live data load failed.</strong> ' + statusMsg + ' — Check browser console (F12) for details.';
+  }
+  panel.appendChild(msg);
+
+  if (!inIframe) {
+    const retryBtn = document.createElement('button');
+    retryBtn.textContent = '↺ Retry';
+    retryBtn.style.cssText = 'background:var(--or);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;';
+    retryBtn.onclick = function() { panel.remove(); loadLiveData(); };
+    panel.appendChild(retryBtn);
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:var(--sf2);color:var(--mu);border:1.5px solid var(--bd);border-radius:6px;padding:6px 10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;';
+  closeBtn.onclick = function() { panel.remove(); };
+  panel.appendChild(closeBtn);
+}
+
+
+function updateFreshnessBar(info) {
+  const bar = document.getElementById('freshness-bar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  const r = document.getElementById('fr-refreshed');  if (r) r.textContent = 'Last refresh: ' + (info.lastRefreshed || '—');
+  const s = document.getElementById('fr-source');      if (s) s.textContent = 'Source: ' + (info.source || 'live API');
+  const v = document.getElementById('fr-ver');         if (v) v.textContent = info.latestVersion || '—';
+  const c = document.getElementById('fr-clients');     if (c) c.textContent = 'Clients enriched: ' + (info.clients || 0);
+  const b = document.getElementById('fr-bc');          if (b) b.textContent = 'BC ownership rows: ' + (info.bcRows || 0);
+}
+
+// ── DIRECT FETCH (replaces JSONP) ────────────────────────────────────
+// Apps Script CORS note: the deployed URL may redirect to a login page if
+// the Workspace domain restricts public access. We try fetch() first; if
+// the response is HTML (login redirect) we surface a clear error.
+async function fetchJsonWithTimeout(url, timeoutMs, labelForErrors) {
+  const fetchPromise = fetch(url).then(async res => {
+    const text = await res.text();
+    if (!res.ok) {
+      setLiveStatus((labelForErrors || url) + ' HTTP ' + res.status, 'warn');
+      return null;
+    }
+    if (text.trim().startsWith('<')) {
+      setLiveStatus((labelForErrors || 'Request') + ' returned HTML (login page or wrong URL).', 'error');
+      showRetryButton();
+      return null;
+    }
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      setLiveStatus('Invalid JSON from ' + (labelForErrors || url) + ': ' + e.message, 'error');
+      return null;
+    }
+  });
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('timeout')), timeoutMs)
+  );
+  try {
+    return await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (err) {
+    if (err.message === 'timeout') {
+      setLiveStatus((labelForErrors || 'Request') + ' timed out after ' + Math.round(timeoutMs / 1000) + 's', 'warn');
+    } else {
+      setLiveStatus('Fetch error (' + (labelForErrors || url) + '): ' + err.message, 'error');
+    }
+    return null;
+  }
+}
+
+async function apiFetch(sheet, timeoutMs) {
+  const url = WEB_APP_URL + '?sheet=' + sheet + '&token=' + API_TOKEN;
+
+  // Use Promise.race for timeout — AbortController/AbortSignal cannot be
+  // cloned across iframe boundaries and throws in sandboxed environments.
+  return fetchJsonWithTimeout(url, timeoutMs, sheet);
+}
+
+function pickBundleParts(bundle) {
+  if (!bundle || typeof bundle !== 'object') return null;
+  const meta = bundle.metadata || bundle.Metadata;
+  const bcData = bundle.bcOwnership || bundle.BCOwnership;
+  const sheetData = bundle.clientSummary || bundle.ClientSummary;
+  return { meta, bcData, sheetData, generatedAt: bundle.generatedAt || bundle.GeneratedAt };
+}
+
+function lastRefreshedFromMeta(meta, generatedAt) {
+  if (meta && meta.rows) {
+    const lastRefRow = meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
+    if (lastRefRow && lastRefRow.Value) return String(lastRefRow.Value);
+  }
+  if (generatedAt) return String(generatedAt);
+  return null;
+}
+
+function applyLatestVersionFromMeta(meta) {
+  if (!meta || !meta.rows) return;
+  const latestVerRow = meta.rows.find(r => r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION');
+  if (latestVerRow) LATEST_VER = String(latestVerRow.Value).trim();
+}
+
+// ── MAIN LIVE-DATA LOADER ─────────────────────────────────────────────
+async function loadLiveData() {
+  if (_liveDataInFlight) return;
+  _liveDataInFlight = true;
+  try {
+    updateLagBadge('⏳ Loading data…');
+
+    if (DATA_BUNDLE_URL) {
+      const bust = (DATA_BUNDLE_URL.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
+      const bundleUrl = DATA_BUNDLE_URL + bust;
+      setLiveStatus('Fetching data.json…', 'info');
+      const raw = await fetchJsonWithTimeout(bundleUrl, 60000, 'data.json');
+      const parts = pickBundleParts(raw);
+      if (parts && parts.sheetData && parts.sheetData.rows && parts.sheetData.rows.length && !parts.sheetData.error) {
+        const lastRefStr = lastRefreshedFromMeta(parts.meta, parts.generatedAt);
+        applyLatestVersionFromMeta(parts.meta);
+
+        setLiveStatus('[bundle] Metadata ✓ · latest app: ' + LATEST_VER, 'ok');
+
+        if (parts.bcData && !parts.bcData.error && parts.bcData.rows && parts.bcData.rows.length > 0) {
+          applyBCOwnership_(parts.bcData.rows);
+          _lastBcRows = parts.bcData.rows.length;
+          setLiveStatus('[bundle] BC ownership (' + parts.bcData.rows.length + ' rows) ✓', 'ok');
+        } else {
+          setLiveStatus('[bundle] BCOwnership missing or empty — using embedded BC list', 'warn');
+        }
+
+        setLiveStatus('[bundle] ClientSummary (' + (parts.sheetData.rowCount || parts.sheetData.rows.length) + ' rows) ✓', 'ok');
+        applyLiveData(parts.sheetData, 'static bundle (data.json)');
+        rebuildFilterDropdowns();
+        applyF();
+
+        updateLagBadge('✅ Data · ' + (lastRefStr || 'updated'));
+        updateFreshnessBar({
+          lastRefreshed: lastRefStr,
+          source: 'data.json (same origin)',
+          latestVersion: LATEST_VER,
+          clients: parts.sheetData.rowCount || parts.sheetData.rows.length,
+          bcRows: _lastBcRows || 0,
+        });
+        return;
+      }
+      setLiveStatus('data.json missing or invalid — falling back to Apps Script if configured', 'warn');
+    }
+
+    if (!WEB_APP_URL) {
+      setLiveStatus('Set DATA_BUNDLE_URL (and publish data.json) or WEB_APP_URL', 'error');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    setLiveStatus('[1/3] Probing API…', 'info');
+
+    const meta = await apiFetch('Metadata', 15000);
+    if (!meta || meta.error) {
+      setLiveStatus('[1/3] API unreachable: ' + (meta?.message || 'no response'), 'error');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    const lastRefStr = lastRefreshedFromMeta(meta, null);
+    applyLatestVersionFromMeta(meta);
+
+    setLiveStatus('[1/3] API connected ✓ · refreshed: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
+
+    setLiveStatus('[2/3] Fetching BCOwnership…', 'info');
+    const bcData = await apiFetch('BCOwnership', 20000);
+    if (bcData && !bcData.error && bcData.rows && bcData.rows.length > 0) {
+      applyBCOwnership_(bcData.rows);
+      _lastBcRows = bcData.rows.length;
+      setLiveStatus('[2/3] BC ownership applied (' + bcData.rows.length + ' rows) ✓', 'ok');
+    } else {
+      setLiveStatus('[2/3] BCOwnership unavailable — ' + (bcData?.message || 'no rows'), 'warn');
+    }
+
+    setLiveStatus('[3/3] Fetching ClientSummary…', 'info');
+    const sheetData = await apiFetch('ClientSummary', 30000);
+    if (!sheetData || sheetData.error) {
+      setLiveStatus('ClientSummary failed: ' + (sheetData?.message || 'no response'), 'warn');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    setLiveStatus('[3/3] Received ' + (sheetData.rowCount || 0) + ' rows from ClientSummary ✓', 'ok');
+    applyLiveData(sheetData, 'Google Apps Script API');
+    rebuildFilterDropdowns();
+    applyF();
+
+    updateLagBadge('✅ Live data · refreshed ' + (lastRefStr || 'recently'));
+    updateFreshnessBar({
+      lastRefreshed: lastRefStr,
+      source: 'Azure App Insights → Google Sheets',
+      latestVersion: LATEST_VER,
+      clients: sheetData.rowCount || 0,
+      bcRows: _lastBcRows || 0,
+    });
+  } finally {
+    _liveDataInFlight = false;
+  }
+}
+
+// ── APPLY BC OWNERSHIP FROM BCOwnership SHEET ─────────────────────────
+// Receives the rows array from the BCOwnership tab (sourced from HbCDataset).
+// Column mapping from your 3C sheet:
+//   BPN              → join key (strip leading zeros)
+//   CompanyName      → practice display name
+//   ClientOwner      → BC name (the person assigned)
+//   BCTeam           → BC regional team
+//   HbCContractStatus → contract status (Active / Inactive / Trial etc.)
+//   CompanyStatus     → fallback status if HbCContractStatus is blank
+//   HbCContract_EffectiveDate → contract start date
+//   EHR              → system/PMA type
+function applyBCOwnership_(rows) {
+  // BCOwnership is the master list — build CLIENTS from it.
+  // Confirmed columns: BPN, CompanyName, CompanyStatus, EHR, ClientOwner,
+  // BCTeam, Speciality, NovaMigration, HbCContractStatus,
+  // HbCContract_EffectiveDate, HbCContract_SignedDate
+  if (!rows || rows.length === 0) return;
+
+  CLIENTS.length = 0;
+  BCS.length     = 0;
+  TEAMS.length   = 0;
+
+  rows.forEach(r => {
+    const bpn = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (!bpn || bpn === '0') return;
+
+    const bcName = String(r.ClientOwner || '').trim();
+    const bcTeam = String(r.BCTeam      || '').trim();
+    const bcObj  = bcName ? {
+      id:       'live_' + bcName.replace(/\s+/g, '_'),
+      name:     bcName,
+      team:     bcTeam || 'Unassigned',
+      initials: bcName.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2),
+    } : null;
+
+    // Contract status — HbCContractStatus is the primary field
+    const status = String(r.HbCContractStatus || r.CompanyStatus || '').trim() || 'active';
+
+    // Speciality
+    const spec = String(r.Speciality || '').trim();
+
+    // Practice name
+    const name = String(r.CompanyName || '').trim() || bpn;
+
+    // PMA — EHR column: 'Nova' values listed in aggregator CONFIG.NOVA_SYSTEMS
+    // NovaMigration = 'Yes' also means Nova
+    const ehr      = String(r.EHR || '').trim().toLowerCase();
+    const novaMig  = String(r.NovaMigration || '').trim().toLowerCase();
+    const pma = (ehr === 'nova' || ehr === 'hbc nova' || novaMig === 'yes') ? 'Nova' : 'myMPS';
+
+    // Register BC + team for filter dropdowns
+    if (bcName && !BCS.find(b => b.name.toLowerCase() === bcName.toLowerCase())) {
+      BCS.push(bcObj);
+    }
+    if (bcTeam && !TEAMS.includes(bcTeam)) TEAMS.push(bcTeam);
+
+    // Contract start date
+    const contractStart = String(r.HbCContract_EffectiveDate || r.HbCContract_SignedDate || '').trim().slice(0,10) || '—';
+    // Tier — derive from contract status or a Tier column if present
+    const tierRaw = String(r.Tier || r.ContractTier || '').trim().toUpperCase();
+    const tier = tierRaw === 'T1' ? 'T1' : tierRaw === 'T0' ? 'T0' : 'T1'; // default T1
+
+    CLIENTS.push({
+      bpn,
+      liveData: false,   // set true when ClientSummary enriches this entry
+      name, owner: bcName, team: bcTeam, spec,
+      status, cs: status,
+      pma, appVer: '—', onLatest: false, lastA: '',
+      enc: 0, da: 0, feat: 0, ai: 0,
+      per: 'Casual User',
+      bc: bcObj,
+      ownership: r,
+      provs: [],
+      contractStart,
+      tier,
+    });
+  });
+
+  console.log('[HbC BC] Built ' + CLIENTS.length + ' clients from BCOwnership');
+}
+
+// ── APPLY LIVE USAGE DATA FROM ClientSummary SHEET ─────────────────────────
+function applyLiveData(sheetData, dataSourceLabel) {
+  const srcLabel = dataSourceLabel || 'Google Apps Script API';
+  // Confirmed ClientSummary columns:
+  // BPN, PracticeName, PMA, AppVersion, OnLatestVersion, DaysActive,
+  // LastActiveDate, TotalEncounters, EncounterUserDays, FeatureOnlyUserDays,
+  // TreatingProviders, TPNs, Events_Encounters, Events_Clinical_Doc,
+  // Events_Scripts, Events_Pathology, Events_AI_Features,
+  // Events_Preventative_Care, Events_Task_Management, Events_Customization,
+  // Events_Noise_/_Passive, TotalMeaningfulEvents
+
+  if (!sheetData || !sheetData.rows || sheetData.rows.length === 0) {
+    setLiveStatus('ClientSummary returned no rows', 'warn');
+    return;
+  }
+
+  // Build fast BPN lookup — BPN may be numeric in sheet, normalise to string no leading zeros
+  const liveMap = {};
+  sheetData.rows.forEach(r => {
+    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (key) liveMap[key] = r;
+  });
+
+  // Meaningful event categories (excludes Noise)
+  const catKeys = [
+    'Events_Encounters', 'Events_Clinical_Doc', 'Events_Scripts',
+    'Events_Pathology',  'Events_AI_Features',  'Events_Preventative_Care',
+    'Events_Task_Management', 'Events_Customization',
+  ];
+
+  let enriched = 0;
+  let added    = 0;
+
+  // Step 1 — enrich CLIENTS built from BCOwnership
+  CLIENTS.forEach(c => {
+    const key  = String(c.bpn || '').replace(/^0+/, '').trim();
+    const live = liveMap[key];
+    if (!live) return;   // no telemetry — stays enc=0, liveData=false
+
+    c.liveData = true;
+    c.enc      = Number(live.TotalEncounters)    || 0;
+    c.da       = Number(live.DaysActive)          || 0;
+    c.feat     = catKeys.reduce((a,k) => a + (Number(live[k]) || 0), 0);
+    c.ai       = Number(live.Events_AI_Features)  || 0;
+    c.lastA    = live.LastActiveDate ? String(live.LastActiveDate).slice(0, 10) : '';
+
+    if (live.AppVersion) {
+      c.appVer   = String(live.AppVersion);
+      c.onLatest = live.OnLatestVersion === 'Yes' || live.OnLatestVersion === true;
+    }
+    // TreatingProviders column — split into provs array for BC view
+    if (live.TreatingProviders) {
+      c.provs = String(live.TreatingProviders).split(',')
+                  .map(p => ({ name: p.trim(), tpn: '' }))
+                  .filter(p => p.name);
+    }
+    // PMA from telemetry is most accurate
+    if (live.PMA) c.pma = live.PMA;
+    // Fill in name if 3C had none
+    if (!c.name || c.name === c.bpn) c.name = String(live.PracticeName || c.bpn);
+
+    // Re-derive engagement persona
+    const isAct = /^(active|trial|inprogress|in.?progress)$/i.test((c.status||'').replace(/\s/g,''));
+    c.per = isAct && c.enc > 200 && c.da > 18 ? 'Power Clinical User'
+          : isAct && c.enc > 50               ? 'Standard Clinical User'
+          : c.feat > 300                       ? 'Admin/Power Support'
+                                               : 'Casual User';
+    enriched++;
+  });
+
+  // Step 2 — add telemetry-only BPNs not in BCOwnership (e.g. new sign-ups)
+  sheetData.rows.forEach(r => {
+    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    if (!key) return;
+    if (CLIENTS.find(c => String(c.bpn||'').replace(/^0+/,'').trim() === key)) return;
+
+    const enc  = Number(r.TotalEncounters) || 0;
+    const da   = Number(r.DaysActive)       || 0;
+    const feat = catKeys.reduce((a,k) => a + (Number(r[k]) || 0), 0);
+    const ai   = Number(r.Events_AI_Features) || 0;
+    const per  = enc > 200 && da > 18 ? 'Power Clinical User'
+               : enc > 50             ? 'Standard Clinical User'
+               : feat > 300           ? 'Admin/Power Support' : 'Casual User';
+
+    CLIENTS.push({
+      bpn: key, liveData: true,
+      name:   String(r.PracticeName || key),
+      owner: '', team: '', spec: '', status: 'active', cs: 'active',
+      pma:    r.PMA || 'myMPS',
+      appVer: String(r.AppVersion || '—'),
+      onLatest: r.OnLatestVersion === 'Yes',
+      lastA:  r.LastActiveDate ? String(r.LastActiveDate).slice(0, 10) : '',
+      enc, da, feat, ai, per,
+      bc: null, ownership: null, provs: [],
+      contractStart: '—', tier: 'T1',
+    });
+    added++;
+  });
+
+  window._liveDataLoaded = true;
+  const ew = document.getElementById('embedded-warning');
+  if (ew) {
+    ew.style.background = 'rgba(117,235,158,.12)';
+    ew.style.borderColor = 'rgba(117,235,158,.5)';
+    ew.style.color = '#166534';
+    ew.innerHTML = '<span style="font-size:20px;flex-shrink:0">&#x2705;</span><span><strong>Data loaded successfully.</strong> Source: ' + srcLabel + '.</span>';
+    setTimeout(() => { if(ew) ew.style.display = 'none'; }, 4000);
+  }
+  // Remove any error diagnostic panel
+  const dp = document.getElementById('diag-panel');
+  if (dp) dp.remove();
+
+  console.log('[HbC] applyLiveData — enriched: ' + enriched + ', added: ' + added + ', total: ' + CLIENTS.length);
+  setLiveStatus('Loaded ' + CLIENTS.length + ' practices (' + enriched + ' matched · ' + added + ' telemetry-only)', 'ok');
+}
+
+// ── BOOT ──
+function boot(){
+  sessionStorage.setItem('hbc-role',role);
+  document.getElementById('auth-gate').style.display='none';
+  document.getElementById('app').style.display='flex';
+  // Detect iframe and update warning banner safely after all JS is loaded
+  try {
+    const inIframe = (window.self !== window.top);
+    const w = document.getElementById('embedded-warning');
+    const m = document.getElementById('ew-msg');
+    const ic = document.getElementById('ew-icon');
+    const rb = document.getElementById('ew-retry');
+    if (w && inIframe) {
+      w.style.background='rgba(119,87,236,.1)'; w.style.borderColor='rgba(119,87,236,.4)'; w.style.color='#4c1d95';
+      if(ic) ic.textContent='ℹ️';
+      if(m) m.innerHTML='<strong>Running inside Claude preview — live data unavailable.</strong> Download this file and open it directly in Chrome with your Healthbridge Google account signed in.';
+      if(rb) rb.style.display='none';
+    }
+  } catch(e) {}
+  const isBC=role==='bc'||role==='admin';
+  if(role==='admin'){
+    document.getElementById('ua').textContent='AD';
+    document.getElementById('ua').style.background='rgba(119,87,236,.85)';
+    document.getElementById('uname').textContent='Admin';
+    document.getElementById('urole').textContent='Full access + data control';
+    const fb=document.getElementById('freshness-bar');
+    if(fb) fb.style.display='flex';
+  } else {
+    document.getElementById('ua').textContent=isBC?'BC':'V';
+    document.getElementById('uname').textContent=isBC?'BC / Manager':'General Viewer';
+    document.getElementById('urole').textContent=isBC?'Full access':'Aggregated view';
+  }
+  document.querySelectorAll('.bc-only').forEach(e=>e.classList.toggle('hidden',!isBC));
+  const bcSel=document.getElementById('gf-bc');
+  BCS.forEach(b=>{const o=document.createElement('option');o.value=b.name;o.textContent=b.name;bcSel.appendChild(o);});
+  const tSel=document.getElementById('gf-team');
+  TEAMS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tSel.appendChild(o);});
+  applyF();
+  initCharts();
+  loadLiveData();
+  scheduleLiveRefresh();
+}
+
+// ── FILTERS ──
+let FC=[];
+window._liveDataLoaded = false;  // set true only once ClientSummary has been applied
+function applyF(){
+  const bc=document.getElementById('gf-bc').value;
+  const tm=document.getElementById('gf-team').value;
+  const q=(document.getElementById('gf-q').value||'').toLowerCase().trim();
+  // When live data is loaded, only show clients confirmed in the telemetry.
+  // Unmatched clients have random embedded values — showing them causes confusion.
+  // Show all CLIENTS — BCOwnership is the master list; liveData=true means telemetry enriched
+  const pool = CLIENTS;
+
+  FC=pool.filter(c=>{
+    if(bc&&(!c.bc||c.bc.name!==bc))return false;
+    if(tm&&(!c.bc||c.bc.team!==tm))return false;
+    if(q){
+      const hay=[c.name,c.bpn,...c.provs.map(p=>p.name),...c.provs.map(p=>p.tpn),c.bc?c.bc.name:''].join(' ').toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    return true;
+  });
+  const n=FC.length;
+  const poolLabel = ` of ${CLIENTS.length} clients`;
+  document.getElementById('fr').textContent = n === pool.length
+    ? `Showing all ${n} clients`
+    : `Showing ${n}${poolLabel}`;
+  const tab=document.querySelector('.tab.active')?.dataset?.t;
+  if(tab)refresh(tab);
+}
+function clearF(){
+  document.getElementById('gf-bc').value='';
+  document.getElementById('gf-team').value='';
+  document.getElementById('gf-q').value='';
+  applyF();
+}
+
+// ── TAB NAV ──
+function goTab(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  refresh(id);
+  setTimeout(()=>{if(window.Chart)Object.values(Chart.instances||{}).forEach(c=>c&&c.resize());},60);
+}
+function refresh(tab){
+  if(tab==='exec')renderExec();
+  if(tab==='overview')renderOverview();
+  if(tab==='encounters'){renderEncKPIs();renderEncTable();}
+  if(tab==='features')renderFeatKPIs();
+  if(tab==='bcview')renderBCTable();
+  if(tab==='anomalies')renderAnomTable();
+}
+
+// ── PERSONA ──
+const PB={'Power Clinical User':'pow','Standard Clinical User':'std','Admin/Power Support':'adm','Casual User':'cas'};
+const PC={'Power Clinical User':GR,'Standard Clinical User':OR,'Admin/Power Support':PU,'Casual User':'#ccc'};
+function pbadge(per){return `<span class="b b${PB[per]||'cas'}">${per}</span>`;}
+
+// ── STATUS NORMALISATION ──────────────────────────────────────────────────────
+// The 3C sheet uses mixed-case and compound values; normalise them to a
+// small set so badge styling works consistently everywhere.
+function normaliseStatus(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s || s === 'unassigned') return 'Unassigned';
+  if (s === 'active')                                         return 'Active';
+  if (s === 'trial')                                          return 'Trial';
+  if (s === 'inprogress' || s === 'in progress')              return 'In Progress';
+  if (s === 'pendingcancellation' || s === 'pending cancellation') return 'Pending Cancellation';
+  if (s === 'contrejected')                                   return 'Rejected';
+  if (s === 'cancelled' || s === 'canceled')                  return 'Cancelled';
+  if (s === 'rejected')                                       return 'Rejected';
+  if (s === 'inactive')                                       return 'Inactive';
+  // Title-case anything else
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function statusBadge(raw) {
+  const s = normaliseStatus(raw);
+  const cls = {
+    'Active':               'ba',
+    'Trial':                'bt',
+    'In Progress':          'bt',
+    'Pending Cancellation': 'bt',
+    'Inactive':             'bi',
+    'Rejected':             'bi',
+    'Cancelled':            'bi',
+    'Unassigned':           'bcri',
+  }[s] || 'bcas';
+  return `<span class="b ${cls}">${s}</span>`;
+}
+
+// ── SPECIALITY SPLIT ─────────────────────────────────────────────────────────
+// Reads Speciality from BCOwnership data (stored on client.ownership.Speciality)
+// and renders a ranked bar chart showing total, encounter, and feature-only
+// client counts per speciality.
+
+function renderSpecialityChart() {
+  const el = document.getElementById('speciality-chart');
+  if (!el) return;
+
+  // Aggregate clients by speciality
+  const map = {}; // { speciality: { total, enc, feat, none } }
+
+  FC.forEach(c => {
+    // Speciality comes from BCOwnership row stored on the client,
+    // falling back to the embedded spec field if live data not yet applied
+    const rawSpec = (c.ownership && c.ownership.Speciality)
+      ? String(c.ownership.Speciality).trim()
+      : (c.spec || 'Unknown');
+    // Fix 4: normalise GP variants to one label
+    const spec = !rawSpec ? 'Unknown'
+      : /^gp$/i.test(rawSpec) ? 'General Practitioner'
+      : rawSpec;
+
+    if (!map[spec]) map[spec] = { total:0, enc:0, feat:0, none:0 };
+    map[spec].total++;
+    if (c.enc > 0)       map[spec].enc++;
+    else if (c.feat > 0) map[spec].feat++;
+    else                 map[spec].none++;
+  });
+
+  const rows = Object.entries(map)
+    .sort((a,b) => b[1].total - a[1].total);
+
+  if (rows.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>No speciality data available yet</p><small>BCOwnership data loads after logging in via the local server</small></div>';
+    return;
+  }
+
+  const maxTotal = rows[0][1].total;
+  const totalClients = FC.length || 1;
+
+  // Colour palette for bars — cycles through brand colours
+  const SPEC_COLORS = [OR, PU, '#4A90D9', GR, BU, '#f59e0b', '#22c55e', '#a78bfa', '#fb923c', '#38bdf8'];
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:160px 1fr auto auto auto;gap:0;align-items:center">
+      <!-- Header row -->
+      <div style="font-size:10px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;padding:0 0 8px 0">Speciality</div>
+      <div style="font-size:10px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;padding:0 0 8px 12px"></div>
+      <div style="font-size:10px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;padding:0 0 8px 12px;text-align:right;white-space:nowrap">Total</div>
+      <div style="font-size:10px;font-weight:800;color:${OR};text-transform:uppercase;letter-spacing:.5px;padding:0 0 8px 12px;text-align:right;white-space:nowrap">Enc</div>
+      <div style="font-size:10px;font-weight:800;color:${PU};text-transform:uppercase;letter-spacing:.5px;padding:0 0 8px 12px;text-align:right;white-space:nowrap">Feat-only</div>
+
+      ${rows.map(([spec, n], i) => {
+        const color = SPEC_COLORS[i % SPEC_COLORS.length];
+        const encW  = maxTotal ? Math.round(n.enc  / maxTotal * 100) : 0;
+        const featW = maxTotal ? Math.round(n.feat / maxTotal * 100) : 0;
+        const pct   = Math.round(n.total / totalClients * 100);
+        return `
+          <!-- Speciality label -->
+          <div style="font-size:13px;font-weight:700;color:var(--ch);padding:5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${spec}">${spec}</div>
+
+          <!-- Stacked bar -->
+          <div style="padding:5px 0 5px 12px">
+            <div style="display:flex;height:18px;border-radius:4px;overflow:hidden;background:var(--sf2)">
+              <div style="width:${encW}%;background:${OR};transition:width .4s;min-width:${n.enc>0?2:0}px"></div>
+              <div style="width:${featW}%;background:${PU};transition:width .4s;min-width:${n.feat>0?2:0}px"></div>
+            </div>
+          </div>
+
+          <!-- Counts -->
+          <div style="font-size:13px;font-weight:800;color:var(--ch);text-align:right;padding:5px 0 5px 12px;white-space:nowrap">
+            ${n.total} <span style="font-size:10px;font-weight:400;color:var(--mu)">${pct}%</span>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:${OR};text-align:right;padding:5px 0 5px 12px">${n.enc}</div>
+          <div style="font-size:13px;font-weight:700;color:${PU};text-align:right;padding:5px 0 5px 12px">${n.feat}</div>
+        `;
+      }).join('')}
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:18px;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:12px;height:8px;border-radius:2px;background:${OR}"></div>
+        <span>Encounter clients (had consult-complete in 30d)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:12px;height:8px;border-radius:2px;background:${PU}"></div>
+        <span>Feature-only (no encounters)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:12px;height:8px;border-radius:2px;background:var(--sf2);border:1px solid var(--bd)"></div>
+        <span>No activity in 30d</span>
+      </div>
+    </div>
+  `;
+}
+
+// ── FEATURE DISPLAY NAME LOOKUP ──────────────────────────────────────────────
+// Converts raw feature keys (e.g. 'consult-complete') to human-readable labels
+// using the FEATURES_MAP display names. Falls back to title-cased raw name.
+const FEAT_DISPLAY_MAP = (() => {
+  const m = {};
+  Object.values(FEATURES_MAP || {}).forEach(arr => {
+    arr.forEach(f => { m[f.n] = f.d; });
+  });
+  return m;
+})();
+function featLabel(raw) {
+  if (!raw) return '—';
+  return FEAT_DISPLAY_MAP[raw] || raw.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function pmaBadge(pma){
+  const p=String(pma||'—').trim();
+  if(p==='Nova')   return `<span class="b" style="background:rgba(119,87,236,.12);color:var(--pu)">Nova</span>`;
+  if(p==='myMPS')  return `<span class="b" style="background:rgba(247,148,29,.12);color:#c26b00">myMPS</span>`;
+  return `<span class="b bcas">${p}</span>`;
+}
+
+function verChip(ver, onLatest){
+  const v=String(ver||'—').trim();
+  const ok = onLatest==='Yes' || v===LATEST_VER;
+  const col = ok ? '#16a34a' : '#d97706';
+  const bg  = ok ? 'rgba(117,235,158,.15)' : 'rgba(245,158,11,.12)';
+  return `<span class="b" style="background:${bg};color:${col}">${v}</span>`;
+}
+
+// ── EXEC ──
+function renderExec(){
+  const fc=FC;
+  const total=fc.length;
+
+  // ── Client engagement classification ──────────────────────────────────
+  // A client is "encounter" if they have at least 1 encounter in the 30d window.
+  // "Feature-only" = logged in and used features but enc === 0.
+  // "No activity"  = enc === 0 AND feat === 0 (or no data at all).
+  const encClients      = fc.filter(c => c.enc > 0);
+  const featOnlyClients = fc.filter(c => c.enc === 0 && c.feat > 0);
+  const noActivityClients = fc.filter(c => c.enc === 0 && c.feat === 0);
+
+  const encN  = encClients.length;
+  const featN = featOnlyClients.length;
+  const noneN = noActivityClients.length;
+  const pct   = n => total ? Math.round(n / total * 100) : 0;
+
+  // ── KPI tiles ─────────────────────────────────────────────────────────
+  document.getElementById('ek1').textContent        = total.toLocaleString();
+  document.getElementById('ek1s').textContent       = `of ${CLIENTS.length.toLocaleString()} total clients`;
+  document.getElementById('ek-enc').textContent     = encN.toLocaleString();
+  document.getElementById('ek-enc-s').textContent   = `${pct(encN)}% of filtered set`;
+  document.getElementById('ek-feat').textContent    = featN.toLocaleString();
+  document.getElementById('ek-feat-s').textContent  = `${pct(featN)}% of filtered set`;
+  document.getElementById('ek-inactive').textContent = noneN.toLocaleString();
+  document.getElementById('ek5').textContent        = fc.filter(c=>!c.bc).length;
+
+  // ── Stacked breakdown bar ──────────────────────────────────────────────
+  const encW  = pct(encN);
+  const featW = pct(featN);
+  const noneW = 100 - encW - featW;
+
+  const barEnc  = document.getElementById('bar-enc');
+  const barFeat = document.getElementById('bar-feat');
+  const barNone = document.getElementById('bar-none');
+  if(barEnc && barFeat && barNone){
+    barEnc.style.width  = encW  + '%';
+    barFeat.style.width = featW + '%';
+    barNone.style.width = Math.max(noneW, 0) + '%';
+    barEnc.textContent  = encW  > 6 ? `${encN.toLocaleString()} (${encW}%)` : '';
+    barFeat.textContent = featW > 6 ? `${featN.toLocaleString()} (${featW}%)` : '';
+    barNone.textContent = noneW > 6 ? `${noneN.toLocaleString()} (${noneW}%)` : '';
+  }
+
+  // ── Legend labels ──────────────────────────────────────────────────────
+  const setEl = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  setEl('leg-enc',      encN.toLocaleString());
+  setEl('leg-enc-pct',  `(${pct(encN)}%)`);
+  setEl('leg-feat',     featN.toLocaleString());
+  setEl('leg-feat-pct', `(${pct(featN)}%)`);
+  setEl('leg-none',     noneN.toLocaleString());
+  setEl('leg-none-pct', `(${pct(noneN)}%)`);
+
+  // ── Per-team breakdown table ───────────────────────────────────────────
+  const tbody = document.getElementById('team-breakdown-tbody');
+  if(tbody){
+    const rows = TEAMS.map(team => {
+      const teamClients = fc.filter(c => c.bc && c.bc.team === team);
+      if(!teamClients.length) return '';
+      const tEnc  = teamClients.filter(c => c.enc > 0).length;
+      const tFeat = teamClients.filter(c => c.enc === 0 && c.feat > 0).length;
+      const tNone = teamClients.filter(c => c.enc === 0 && c.feat === 0).length;
+      const tNoBC = fc.filter(c => c.bc && c.bc.team === team && !c.bc.name).length;
+      const tTotal= teamClients.length;
+      const tPct  = tTotal ? Math.round(tEnc / tTotal * 100) : 0;
+      const pctCol= tPct >= 70 ? '#16a34a' : tPct >= 50 ? '#d97706' : 'var(--bu)';
+      return `<tr>
+        <td class="tn">${team}</td>
+        <td>${tTotal}</td>
+        <td><strong style="color:var(--or)">${tEnc}</strong></td>
+        <td><strong style="color:var(--pu)">${tFeat}</strong></td>
+        <td style="color:var(--mu)">${tNone}</td>
+        <td><strong style="color:${pctCol}">${tPct}%</strong></td>
+        <td style="color:${tNoBC>0?'var(--bu)':'var(--mu)'}">${tNoBC}</td>
+      </tr>`;
+    }).filter(Boolean);
+
+    // Add unassigned row if any
+    const unassigned = fc.filter(c => !c.bc);
+    if(unassigned.length){
+      const uEnc  = unassigned.filter(c => c.enc > 0).length;
+      const uFeat = unassigned.filter(c => c.enc === 0 && c.feat > 0).length;
+      const uNone = unassigned.filter(c => c.enc === 0 && c.feat === 0).length;
+      rows.push(`<tr style="background:rgba(255,77,0,0.04)">
+        <td class="tn" style="color:var(--bu)">⚠️ No BC assigned</td>
+        <td>${unassigned.length}</td>
+        <td><strong style="color:var(--or)">${uEnc}</strong></td>
+        <td><strong style="color:var(--pu)">${uFeat}</strong></td>
+        <td style="color:var(--mu)">${uNone}</td>
+        <td>—</td>
+        <td style="color:var(--bu);font-weight:700">${unassigned.length}</td>
+      </tr>`);
+    }
+    tbody.innerHTML = rows.join('') || '<tr><td colspan="7" style="text-align:center;color:var(--mu)">No clients match the current filters</td></tr>';
+  }
+
+  // ── PMA split bar ──────────────────────────────────────────────────────
+  const novaN = fc.filter(c=>c.pma==='Nova').length;
+  const mpsN  = fc.filter(c=>c.pma!=='Nova').length;
+  const mpsBar  = document.getElementById('pma-mps-bar');
+  const novaBar = document.getElementById('pma-nova-bar');
+  if(mpsBar && novaBar && total){
+    const mpsW  = Math.round(mpsN / total * 100);
+    const novaW = 100 - mpsW;
+    mpsBar.style.width  = mpsW  + '%';
+    novaBar.style.width = novaW + '%';
+    mpsBar.textContent  = mpsW  > 8 ? `MPS ${mpsN.toLocaleString()}`  : '';
+    novaBar.textContent = novaW > 4 ? `Nova ${novaN.toLocaleString()}` : '';
+  }
+  setEl('pma-mps-n',  mpsN.toLocaleString());
+  setEl('pma-nova-n', novaN.toLocaleString());
+
+  // ── Version currency ───────────────────────────────────────────────────
+  const onLatestN = fc.filter(c=>c.onLatest).length;
+  setEl('ek-ver',   onLatestN.toLocaleString());
+  setEl('ek-ver-s', `on ${LATEST_VER} · ${fc.filter(c=>c.appVer!=='—'&&!c.onLatest).length} outdated · ${fc.filter(c=>c.appVer==='—').length} no data`);
+  const vsw = document.getElementById('ver-summary-wrap');
+  if(vsw){
+    const withVer = fc.filter(c=>c.appVer!=='—');
+    const verCounts={};
+    fc.forEach(c=>{if(c.appVer!=='—'){verCounts[c.appVer]=(verCounts[c.appVer]||0)+1;}});
+    const verRows=(ALL_VERSIONS||[]).filter(v=>verCounts[v]).map(v=>{
+      const isLatest=v===LATEST_VER;
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <span style="font-weight:700;min-width:60px">${v}</span>
+        <div style="flex:1;background:var(--sf2);border-radius:4px;height:8px;overflow:hidden">
+          <div style="width:${Math.round(verCounts[v]/Math.max(withVer.length,1)*100)}%;height:100%;background:${isLatest?'#16a34a':'var(--bu)'}"></div>
+        </div>
+        <span style="min-width:30px;text-align:right;color:${isLatest?'#16a34a':'var(--bu)'};font-weight:700">${verCounts[v]}</span>
+        ${isLatest?'<span style="font-size:10px;color:#16a34a">✓ latest</span>':''}
+      </div>`;
+    }).join('');
+    vsw.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px">${verRows}</div>`;
+  }
+
+  // ── BC portfolio cards ─────────────────────────────────────────────────
+  renderSpecialityChart();
+  const el=document.getElementById('exec-list');
+  el.innerHTML='';
+  TEAMS.forEach(team=>{
+    const tBCs=BCS.filter(b=>b.team===team);
+    const tC=fc.filter(c=>c.bc&&c.bc.team===team);
+    if(!tC.length)return;
+    const tEnc=tC.reduce((a,c)=>a+c.enc,0);
+    const tRisk=tC.filter(c=>c.enc===0).length;
+    const hdr=document.createElement('div');hdr.className='thdr';
+    hdr.innerHTML=`<h4>📍 ${team}</h4><div class="tstat">Clients: <strong>${tC.length}</strong></div><div class="tstat">Encounter clients: <strong style="color:${OR}">${tC.filter(c=>c.enc>0).length}</strong></div><div class="tstat">Feature-only: <strong style="color:${PU}">${tC.filter(c=>c.enc===0&&c.feat>0).length}</strong></div><div class="tstat">No activity: <strong style="color:var(--mu)">${tRisk}</strong></div>`;
+    el.appendChild(hdr);
+    tBCs.forEach(bc=>{
+      const bC=fc.filter(c=>c.bc&&c.bc.id===bc.id);
+      if(!bC.length)return;
+      const bEnc=bC.reduce((a,c)=>a+c.enc,0);
+      const bAI=bC.reduce((a,c)=>a+c.ai,0);
+      const bEncClients=bC.filter(c=>c.enc>0).length;
+      const bFeatOnly=bC.filter(c=>c.enc===0&&c.feat>0).length;
+      const uid=`bp-${bc.id}-${Date.now()}`;
+      const card=document.createElement('div');card.className='bcc';
+      const isBC=role==='bc'||role==='admin';
+      card.innerHTML=`
+        <div class="bcch" onclick="toggleP('${uid}',this)">
+          <div class="bav">${bc.initials}</div>
+          <div><div class="bnam">${bc.name}</div><div class="bmet">${bc.team} · ${bC.length} client${bC.length!==1?'s':''}</div></div>
+          <div class="bstats">
+            <div class="bst"><div class="bstv or">${bEncClients}</div><div class="bstl">Encounter</div></div>
+            <div class="bst"><div class="bstv" style="color:var(--pu)">${bFeatOnly}</div><div class="bstl">Feat-only</div></div>
+            <div class="bst"><div class="bstv">${bEnc.toLocaleString()}</div><div class="bstl">Total enc</div></div>
+            <div class="bst"><div class="bstv">${bAI.toLocaleString()}</div><div class="bstl">AI events</div></div>
+          </div>
+          <div class="tog" id="t-${uid}">▼</div>
+        </div>
+        <div class="bcpw" id="${uid}">
+          <table style="margin-top:4px">
+            <thead><tr><th>Practice</th><th>BPN</th><th>Treating providers</th><th>PMA</th><th>App version</th><th>Status</th><th>Enc (30d)</th><th>AI events</th><th>Persona</th><th>Health</th></tr></thead>
+            <tbody>${bC.map(c=>{
+              const h=c.enc>100?'g':c.enc>20?'y':'r';
+              const hl=c.enc>100?'Good':c.enc>20?'Watch':'At risk';
+              const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
+              return `<tr><td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}</td><td class="tm">${isBC?c.bpn:'—'}</td><td>${prov}</td><td>${pmaBadge(c.pma)}</td><td>${verChip(c.appVer,c.onLatest)}</td><td>${statusBadge(c.status)}</td><td><strong>${c.enc.toLocaleString()}</strong></td><td>${c.ai}</td><td>${pbadge(c.per)}</td><td><span class="hd hd${h}"></span>${hl}</td></tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>`;
+      el.appendChild(card);
+    });
+  });
+  // unassigned
+  const ua=fc.filter(c=>!c.bc);
+  if(ua.length){
+    const hdr=document.createElement('div');hdr.className='thdr';hdr.style.background=BU;
+    hdr.innerHTML=`<h4>⚠️ Unassigned (no BC in 3C)</h4><div class="tstat">Count: <strong>${ua.length}</strong></div>`;
+    el.appendChild(hdr);
+    ua.forEach(c=>{
+      const row=document.createElement('div');
+      row.style.cssText='background:#fff;border-radius:var(--r-sm);padding:11px 16px;margin-bottom:8px;border-left:4px solid var(--bu);box-shadow:var(--sh);display:flex;gap:14px;align-items:center;';
+      row.innerHTML=`<strong style="flex:1">${c.name}</strong><span class="tm">${c.bpn}</span><span class="b bcri">No BC</span><span class="b ${c.ownership?'bt0':'bi'}">${c.ownership?'Has contract':'No contract'}</span>`;
+      el.appendChild(row);
+    });
+  }
+} // end renderExec
+
+function toggleP(uid,hdr){document.getElementById(uid).classList.toggle('open');document.getElementById('t-'+uid).classList.toggle('open');}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  const fc=FC;
+  document.getElementById('ok1').textContent=fc.filter(c=>normaliseStatus(c.status)==='Active').length;
+  document.getElementById('ok1s').textContent=`of ${fc.length} in filtered set`;
+  const tEnc=fc.reduce((a,c)=>a+c.enc,0);
+  document.getElementById('ok2').textContent=Math.round(tEnc/30);
+  const tAI=fc.reduce((a,c)=>a+c.ai,0);
+  document.getElementById('ok3').textContent=tAI>=1000?(tAI/1000).toFixed(1)+'K':tAI;
+}
+
+// ── ENCOUNTERS ──
+function renderEncKPIs(){
+  const fc=FC,t=fc.reduce((a,c)=>a+c.enc,0);
+  document.getElementById('enk1').textContent=t.toLocaleString();
+  document.getElementById('enk4').textContent=fc.filter(c=>c.enc<5).length;
+}
+function renderEncTable(){
+  // ── Add 7: populate team filter dropdown on first render ──
+  const teamSel = document.getElementById('enc-team-filter');
+  if(teamSel && teamSel.options.length <= 1){
+    TEAMS.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t; o.textContent=t;
+      teamSel.appendChild(o);
+    });
+  }
+  const teamFilter = teamSel ? teamSel.value : '';
+
+  // Apply global FC + team filter, sorted by encounters desc
+  let fc=[...FC].filter(c=>c.enc>0);
+  if(teamFilter) fc=fc.filter(c=>c.bc&&c.bc.team===teamFilter);
+  fc.sort((a,b)=>b.enc-a.enc);
+
+  const isBC=role==='bc'||role==='admin';
+  document.getElementById('enc-tbody').innerHTML=fc.length?fc.map((c,i)=>{
+    const prov=isBC?c.provs.map(p=>`<span style="font-size:11px;display:block">${p.name} <em style="color:var(--mu)">(${p.tpn})</em></span>`).join(''):'<em class="tm">Hidden</em>';
+    // Add 6: per-provider encounter breakdown (expandable)
+    const provBreakdown = isBC && c.provs && c.provs.length >= 1 ? `
+      <tr id="pb-${c.bpn}" style="display:none;background:rgba(247,148,29,.04)">
+        <td colspan="12" style="padding:8px 16px 12px 16px">
+          <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Treating provider breakdown · ${c.name}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${c.provs.map((p,pi)=>`<div style="background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;font-size:12px;min-width:200px;box-shadow:var(--sh)">
+              <div style="font-weight:700;margin-bottom:2px">${p.name}</div>
+              <div style="color:var(--mu);margin-bottom:6px;font-size:11px">TPN: ${p.tpn}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                ${pmaBadge(c.pma)}
+                ${verChip(c.appVer, c.onLatest)}
+                <span style="color:var(--or);font-weight:700">${p.enc||Math.round(c.enc/c.provs.length)} enc/30d</span>
+              </div>
+            </div>`).join('')}
+          </div>
+        </td>
+      </tr>` : '';
+    const hasBreakdown = isBC && c.provs && c.provs.length >= 1;
+    return `<tr style="cursor:${hasBreakdown?'pointer':'default'}" onclick="${hasBreakdown?`"const r=document.getElementById('pb-${c.bpn}');if(r)r.style.display=r.style.display==='none'?'table-row':'none'`:''}">
+      <td><strong>${i+1}</strong></td>
+      <td class="tn">${isBC?c.name:'<em class="tm">Hidden</em>'}${hasBreakdown?` <span style="font-size:10px;color:var(--or)">▶ ${c.provs.length} providers</span>`:''}
+      </td>
+      <td class="tm">${isBC?c.bpn:'—'}</td>
+      <td>${prov}</td>
+      <td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td>
+      <td class="tm">${c.bc?c.bc.team:'—'}</td>
+      <td>${pmaBadge(c.pma)}</td>
+      <td>${verChip(c.appVer,c.onLatest)}</td>
+      <td>${pbadge(c.per)}</td>
+      <td><strong>${c.enc.toLocaleString()}</strong></td>
+      <td>${(c.enc/30).toFixed(1)}</td>
+      <td>${statusBadge(c.status)}</td>
+    </tr>${provBreakdown}`;
+  }).join(''):`<tr><td colspan="12"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p><small>Try clearing the filter bar above</small></div></td></tr>`;
+}
+
+// ── FEATURES ──
+function renderFeatKPIs(){
+  const t=FC.reduce((a,c)=>a+c.feat,0);
+  document.getElementById('fek1').textContent=t>=1000?(t/1000).toFixed(1)+'K':t;
+}
+
+// ── BC VIEW ──
+// Active provider detail panel state
+const bcProvPanels = {};
+
+function renderBCTable(){
+  const isBC=role==='bc'||role==='admin';
+  document.getElementById('bv-tbody').innerHTML=FC.length?FC.map(c=>{
+    const uid = 'bvp-'+c.bpn;
+    const provRows = isBC ? `
+      <tr id="${uid}" style="display:none;background:rgba(119,87,236,.03)">
+        <td colspan="16" style="padding:0;border-top:2px solid rgba(119,87,236,.2)">
+          <div style="padding:10px 16px 14px 16px">
+            <div style="font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">
+              📋 Treating providers · ${c.name}
+            </div>
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+              <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--bd);border-radius:6px;overflow:hidden">
+                <thead>
+                  <tr style="background:var(--ch);color:#fff">
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Provider</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">TPN</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">PMA</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">App version</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Status</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Enc (30d)</th>
+                    <th style="text-align:left;padding:7px 12px;font-weight:700;white-space:nowrap">Feature usage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${c.provs.map((p,pi)=>`
+                    <tr style="border-bottom:1px solid var(--bd);background:${pi%2===0?'#fff':'var(--sf2)'}">
+                      <td style="padding:8px 12px;font-weight:700;white-space:nowrap">${p.name}</td>
+                      <td style="padding:8px 12px;color:var(--mu);white-space:nowrap;font-size:11px">${p.tpn}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${pmaBadge(c.pma)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${verChip(c.appVer, c.onLatest)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">${statusBadge(c.status)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap;font-weight:700;color:var(--or)">${p.enc||Math.round(c.enc/c.provs.length)}</td>
+                      <td style="padding:8px 12px;white-space:nowrap">
+                        <button onclick="event.stopPropagation();openProviderFeatures('${c.bpn}','${p.tpn}','${p.name.replace(/'/g,"\\'").replace(/"/g,'')}','${c.name.replace(/'/g,"\\'").replace(/"/g,'')}')"
+                          style="background:var(--pu);color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+                          📊 View features →
+                        </button>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </tr>` : '';
+
+    return `<tr style="cursor:pointer" onclick="const r=document.getElementById('${uid}');if(r){r.style.display=r.style.display==='none'?'table-row':'none'}">
+      <td class="tn">${isBC?`${c.name} <span style="font-size:10px;color:var(--pu)">▶ ${c.provs.length} provider${c.provs.length!==1?'s':''}</span>`:'<em class="tm">Hidden</em>'}</td>
+      <td class="tm">${isBC?c.bpn:'—'}</td>
+      <td class="tm">${isBC?c.provs.map(p=>p.name).join(', '):'<em class="tm">Hidden</em>'}</td>
+      <td>${c.bc?c.bc.name:'<span class="b bcri">Unassigned</span>'}</td>
+      <td class="tm">${c.bc?c.bc.team:'—'}</td>
+      <td>${pmaBadge(c.pma)}</td>
+      <td>${verChip(c.appVer,c.onLatest)}</td>
+      <td class="tm">${c.contractStart}</td>
+      <td><span class="b b${c.tier==='T1'?'t1':c.tier==='T0'?'t0':'cas'}">${c.tier}</span></td>
+      <td>${statusBadge(c.status)}</td>
+      <td><strong>${c.enc.toLocaleString()}</strong></td>
+      <td>${c.feat.toLocaleString()}</td>
+      <td class="tm">${c.lastA}</td>
+      <td>${pbadge(c.per)}</td>
+    </tr>${provRows}`;
+  }).join(''):`<tr><td colspan="14"><div class="empty"><div class="ei">🔍</div><p>No clients match filters</p></div></td></tr>`;
+}
+
+// Opens a provider feature usage modal/panel
+function openProviderFeatures(bpn, tpn, provName, pracName){
+  // Find client
+  const client = CLIENTS.find(c=>String(c.bpn||'').replace(/^0+/,'')===String(bpn).replace(/^0+/,''));
+  if(!client){ alert('Client data not found for BPN: '+bpn); return; }
+
+  // Build feature breakdown from client.featureDetails if available
+  const featDetails = client.featureDetails || {};
+  const featRows = Object.entries(featDetails)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,20)
+    .map(([key,count])=>{
+      const [cat, featName] = key.split('|');
+      const col = CC[cat] || OR;
+      return `<tr>
+        <td style="padding:5px 10px;color:var(--mu);font-size:11px">${cat.replace(/^\d+\.\s*/,'')}</td>
+        <td style="padding:5px 10px;font-weight:600">${featLabel(featName)}</td>
+        <td style="padding:5px 10px;text-align:right;font-weight:700;color:${col}">${count.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+
+  // Build or reuse modal
+  let modal = document.getElementById('prov-feat-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'prov-feat-modal';
+    modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.onclick = e=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--r);max-width:680px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--ch)">${provName}</div>
+        <div style="font-size:12px;color:var(--mu);margin-top:2px">${pracName} · TPN ${tpn} · BPN ${bpn}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">${pmaBadge(client.pma)} ${verChip(client.appVer,client.onLatest)} ${statusBadge(client.status)}</div>
+      </div>
+      <button onclick="document.getElementById('prov-feat-modal').remove()" style="background:var(--sf2);border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--mu)">✕</button>
+    </div>
+    <div style="padding:14px 20px 6px;border-bottom:1px solid var(--bd);display:flex;gap:20px;font-size:12px">
+      <div><strong style="color:var(--or)">${client.enc.toLocaleString()}</strong> encounters (30d)</div>
+      <div><strong style="color:var(--pu)">${client.feat.toLocaleString()}</strong> feature events</div>
+      <div><strong>${client.da||'—'}</strong> days active</div>
+      <div>${pbadge(client.per)}</div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:8px 0">
+      ${featRows ? `<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--sf2)">
+          <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Category</th>
+          <th style="text-align:left;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Feature</th>
+          <th style="text-align:right;padding:6px 10px;font-size:11px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.4px">Events</th>
+        </tr></thead>
+        <tbody>${featRows}</tbody>
+      </table>` : `<div style="padding:30px;text-align:center;color:var(--mu)">
+        <div style="font-size:24px;margin-bottom:8px">📊</div>
+        <div>Feature detail available after live data loads</div>
+        <div style="font-size:12px;margin-top:4px">Practice-level data: ${client.feat.toLocaleString()} total feature events</div>
+      </div>`}
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--bd);background:var(--sf2);font-size:11px;color:var(--mu);text-align:center">
+      Feature data shown at practice level · per-provider telemetry available via App Insights integration
+    </div>
+  </div>`;
+}
+
+// ── ANOMALIES ──
+function renderAnomTable(){
+  const q=(document.getElementById('gf-q').value||'').toLowerCase();
+  const rows=ANOMS.filter(a=>!q||[a.name,a.bpn,a.prov,a.bc].join(' ').toLowerCase().includes(q));
+  // Enrich anomaly rows with PMA + appVer from CLIENTS lookup
+  const anomClientMap=Object.fromEntries(CLIENTS.map(c=>[c.bpn,c]));
+  document.getElementById('an-tbody').innerHTML=rows.map(a=>{
+    const ac=anomClientMap[a.bpn]||{};
+    const pma=ac.pma||'—';const appVer=ac.appVer||'—';const onLatest=ac.onLatest||false;
+    return `<tr>
+      <td class="tn">${a.name}</td><td class="tm">${a.bpn}</td>
+      <td>${pma!=='—'?pmaBadge(pma):'—'}</td>
+      <td>${appVer!=='—'?verChip(appVer,onLatest):'—'}</td>
+      <td class="tm">${a.prov}</td>
+      <td>${a.bc==='—'?'<span class="b bcri">Unassigned</span>':a.bc}</td>
+      <td>${a.type}</td>
+      <td><span class="b b${a.sev}">${{cr:'Critical',wa:'Warning',in:'Info'}[a.sev]}</span></td>
+      <td class="tm">${a.det}</td><td style="font-size:12px">${a.act}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHARTS ──
+function buildFeatureBars(){
+  const container=document.getElementById('adp-bars');
+  if(!container)return;
+  container.innerHTML='';
+
+  // Exclude Noise from % calculation — it dominates everything
+  const cats=Object.keys(FEATURES_MAP||{});
+  const catTotals={};
+  let meaningfulTotal=0;
+  cats.forEach(cat=>{
+    const t=FEATURES_MAP[cat].reduce((a,f)=>a+f.c,0);
+    catTotals[cat]=t;
+    if(!cat.includes('Noise'))meaningfulTotal+=t;
+  });
+  const grandTotal=Object.values(catTotals).reduce((a,b)=>a+b,0);
+
+  cats.forEach((cat,ci)=>{
+    const col=CC[cat]||OR;
+    const total=catTotals[cat];
+    const isNoise=cat.includes('Noise');
+    const pct=Math.round(total/(isNoise?grandTotal:meaningfulTotal)*100);
+    const features=FEATURES_MAP[cat];
+    const maxFeat=Math.max(...features.map(f=>f.c));
+
+    const uid=`feat-${ci}`;
+    const div=document.createElement('div');
+    div.className='adpr';
+    div.innerHTML=`
+      <div class="adp-cat-row" onclick="toggleFeat('${uid}',this)" title="Click to expand features">
+        <span class="adp-cat-icon">▶</span>
+        <span class="adp-cat-label" style="color:${col}">${cat}</span>
+        <div class="adp-track"><div class="adpf" style="width:${Math.min(pct,100)}%;background:${col}"></div></div>
+        <span class="adp-cat-pct" style="color:${col}">${pct}%</span>
+        <span class="adp-cat-count">${total>=1000?(total/1000).toFixed(1)+'K':total} events</span>
+      </div>
+      <div class="adp-features" id="${uid}">
+        ${features.map(f=>{
+          const fpct=maxFeat>0?Math.round(f.c/maxFeat*100):0;
+          return `<div class="adp-feat-row">
+            <span class="adp-feat-name">${f.n}</span>
+            <div class="adp-feat-bar-wrap">
+              <div class="adp-feat-bar-bg"><div class="adp-feat-bar-fill" style="width:${fpct}%;background:${col}88"></div></div>
+            </div>
+            <span class="adp-feat-count">${f.c>=1000?(f.c/1000).toFixed(1)+'K':f.c.toLocaleString()}</span>
+          </div>`;
+        }).join('')}
+        ${isNoise?`<div style="padding:8px 14px 10px 36px;font-size:11px;color:var(--mu);font-style:italic">Noise/Passive events excluded from % share calculation</div>`:''}
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function toggleFeat(uid,rowEl){
+  const panel=document.getElementById(uid);
+  if(!panel)return;
+  panel.classList.toggle('open');
+  rowEl.classList.toggle('open');
+}
+
+Chart.defaults.font.family='Figtree';Chart.defaults.color=CH;
+const G={color:'rgba(0,0,0,0.055)',lineWidth:1};
+let chartsReady=false;
+function initCharts(){
+  if(chartsReady)return;chartsReady=true;
+  // exec line
+  new Chart(document.getElementById('c-el'),{type:'line',data:{labels:D30,datasets:[
+    {label:'Encounter users',data:dEU,borderColor:OR,backgroundColor:'rgba(247,148,29,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:0},
+    {label:'Feature-only',data:dFO,borderColor:PU,backgroundColor:'rgba(119,87,236,0.07)',fill:true,tension:0.35,borderWidth:2,pointRadius:0,borderDash:[4,3]},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
+  // exec team
+  new Chart(document.getElementById('c-et'),{type:'bar',data:{
+    labels:TEAMS,datasets:[{label:'Clients',data:TEAMS.map(t=>CLIENTS.filter(c=>c.bc&&c.bc.team===t).length),backgroundColor:[OR,PU,GR,BU].map(c=>c+'CC'),borderRadius:8,barThickness:36}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
+  // daily users
+  new Chart(document.getElementById('c-du'),{type:'line',data:{labels:D30,datasets:[
+    {label:'Encounter users',data:dEU,borderColor:OR,backgroundColor:'rgba(247,148,29,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:0},
+    {label:'Feature-only',data:dFO,borderColor:PU,backgroundColor:'rgba(119,87,236,0.07)',fill:true,tension:0.35,borderWidth:2,pointRadius:0,borderDash:[4,3]},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
+  // personas
+  const pc={Power:0,Std:0,Adm:0,Cas:0};
+  CLIENTS.forEach(c=>{if(c.per==='Power Clinical User')pc.Power++;else if(c.per==='Standard Clinical User')pc.Std++;else if(c.per==='Admin/Power Support')pc.Adm++;else pc.Cas++;});
+  new Chart(document.getElementById('c-pr'),{type:'doughnut',data:{
+    labels:['Power Clinical','Standard Clinical','Admin/Support','Casual'],
+    datasets:[{data:[pc.Power,pc.Std,pc.Adm,pc.Cas],backgroundColor:[GR,OR,PU,'#E0DDD8'],borderWidth:3,borderColor:'white',hoverOffset:6}]
+  },options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:11,font:{size:11}}}}}});
+  // top clients
+  const tc=[...CLIENTS].filter(c=>c.enc>0).sort((a,b)=>b.enc-a.enc).slice(0,10);
+  new Chart(document.getElementById('c-tc'),{type:'bar',data:{
+    labels:tc.map(c=>c.name.length>24?c.name.slice(0,24)+'…':c.name),
+    datasets:[{label:'Enc (30d)',data:tc.map(c=>c.enc),backgroundColor:tc.map((_,i)=>i===0?OR:`rgba(247,148,29,${0.85-i*0.07})`),borderRadius:6,barThickness:20}]
+  },options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:G,ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  // cat pie
+  const ct=CATS.map((c,i)=>dCAT[i].reduce((a,b)=>a+b,0));
+  new Chart(document.getElementById('c-cp'),{type:'pie',data:{
+    labels:CATS,datasets:[{data:ct,backgroundColor:CATS.map(c=>CC[c]),borderWidth:3,borderColor:'white',hoverOffset:6}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:8,font:{size:10}}}}}});
+  // encounters area
+  new Chart(document.getElementById('c-ea'),{type:'bar',data:{labels:D30,datasets:[
+    {label:'Daily encounters',data:dEC,backgroundColor:'rgba(247,148,29,0.22)',borderColor:OR,borderWidth:1,borderRadius:4,type:'bar'},
+    {label:'7-day moving avg',data:dMA,type:'line',borderColor:BU,borderWidth:2.5,pointRadius:0,tension:0.4,fill:false},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:G,ticks:{font:{size:10}}}}}});
+  // stacked
+  // ── Multi-select pill buttons for the stacked chart ──────────────────────
+  const CHART_CAT_DEFAULTS = CATS.filter(c => !c.includes('Noise'));
+  let activeCats = new Set(CHART_CAT_DEFAULTS);
+  let stChart = null;
+
+  function buildStChart(){
+    const pillContainer = document.getElementById('feat-cat-pills');
+    if(pillContainer && pillContainer.children.length === 0){
+      CATS.forEach(cat => {
+        const col = CC[cat] || OR;
+        const active = activeCats.has(cat);
+        const pill = document.createElement('button');
+        pill.dataset.cat = cat;
+        pill.style.cssText = `font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid ${col};font-family:inherit;transition:all .15s;background:${active?col:'transparent'};color:${active?'#fff':col}`;
+        pill.textContent = cat.replace(/^\d+\.\s*/,'');
+        pill.onclick = () => {
+          if(activeCats.has(cat)){ activeCats.delete(cat); pill.style.background='transparent'; pill.style.color=col; }
+          else { activeCats.add(cat); pill.style.background=col; pill.style.color='#fff'; }
+          updateStChart();
+        };
+        pillContainer.appendChild(pill);
+      });
+      ['All','None'].forEach(label => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid var(--bd);background:var(--sf2);color:var(--mu);font-family:inherit';
+        btn.onclick = () => {
+          const pills = pillContainer.querySelectorAll('[data-cat]');
+          activeCats = label==='All' ? new Set(CHART_CAT_DEFAULTS) : new Set();
+          pills.forEach(p => {
+            const c = p.dataset.cat; const col = CC[c]||OR; const on = activeCats.has(c);
+            p.style.background = on ? col : 'transparent'; p.style.color = on ? '#fff' : col;
+          });
+          updateStChart();
+        };
+        pillContainer.appendChild(btn);
+      });
+    }
+    const datasets = CATS.filter(cat=>activeCats.has(cat)).map(cat=>{
+      const ci=CATS.indexOf(cat);
+      return {label:cat,data:dCAT[ci],backgroundColor:CC[cat]+'55',borderColor:CC[cat],borderWidth:1.5,fill:true,tension:0.3,pointRadius:0};
+    });
+    if(stChart) stChart.destroy();
+    stChart = new Chart(document.getElementById('c-st'),{type:'line',data:{labels:D30,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:G,ticks:{maxTicksLimit:8,font:{size:10}}},y:{stacked:true,grid:G,ticks:{font:{size:10}}}}}});
+  }
+
+  function updateStChart(){
+    const datasets = CATS.filter(cat=>activeCats.has(cat)).map(cat=>{
+      const ci=CATS.indexOf(cat);
+      return {label:cat,data:dCAT[ci],backgroundColor:CC[cat]+'55',borderColor:CC[cat],borderWidth:1.5,fill:true,tension:0.3,pointRadius:0};
+    });
+    if(stChart){ stChart.data.datasets=datasets; stChart.update(); }
+  }
+
+  buildStChart();
+
+  // Expandable feature category bars — real data from FEATURES_MAP
+  buildFeatureBars();
+  // scatter
+  const sDS=Object.entries(PC).map(([per,col])=>({
+    label:per,
+    data:CLIENTS.filter(c=>c.enc>0&&c.per===per).map(c=>({x:c.enc,y:c.ai,r:Math.max(6,Math.min(20,c.da*0.72)),n:c.name})),
+    backgroundColor:col+'99',borderColor:col,borderWidth:1.5
+  }));
+  new Chart(document.getElementById('c-sc'),{type:'bubble',data:{datasets:sDS},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12,font:{size:11}}},
+      tooltip:{callbacks:{label:ctx=>[role==='bc'?ctx.raw.n:'[Client hidden]',`Encounters: ${ctx.raw.x}`,`AI events: ${ctx.raw.y}`]}}},
+    scales:{x:{title:{display:true,text:'Total encounters (90d)',font:{size:12}},grid:G,ticks:{font:{size:10}}},y:{title:{display:true,text:'AI feature events (90d)',font:{size:12}},grid:G,ticks:{font:{size:10}}}}
+  }});
+}
+
+// ── BOOT ──
+const sv=sessionStorage.getItem('hbc-role');
+if(sv){role=sv;boot();}
+</script>
+</body>
+</html>

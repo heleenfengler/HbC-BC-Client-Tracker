@@ -1,0 +1,46 @@
+# Refreshes data.json for the static dashboard (same-origin bundle).
+# Add repo secrets: HBC_WEB_APP_URL, HBC_API_TOKEN (same values as in Apps Script deploy).
+# Without secrets, the script still writes a valid placeholder so Pages never 404 on data.json.
+
+name: Update HbC data bundle
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:00 UTC daily — adjust to SAST if you prefer
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hbc-data-bundle
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build data.json
+        env:
+          HBC_WEB_APP_URL: ${{ secrets.HBC_WEB_APP_URL }}
+          HBC_API_TOKEN: ${{ secrets.HBC_API_TOKEN }}
+        run: node scripts/build-data-bundle.mjs
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data.json
+          if git diff --staged --quiet; then
+            echo "No changes to data.json"
+          else
+            git commit -m "chore(data): refresh HbC dashboard bundle [skip ci]"
+            git push
+          fi

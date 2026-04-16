@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-04-16T00:00:00.000Z",
+  "note": "Starter file — push to GitHub and run workflow \"Update HbC data bundle\" after adding secrets, or replace manually.",
+  "metadata": {
+    "rows": [
+      {
+        "Key": "LastRefreshed_SAST",
+        "Value": "starter file — not live"
+      },
+      {
+        "Key": "LATEST_VERSION",
+        "Value": "6.46.0"
+      }
+    ]
+  },
+  "bcOwnership": {
+    "rows": []
+  },
+  "clientSummary": {
+    "rowCount": 1,
+    "rows": [
+      {
+        "BPN": "999999",
+        "PracticeName": "Publish this folder to GitHub Pages with index.html + data.json side by side",
+        "PMA": "myMPS",
+        "AppVersion": "—",
+        "OnLatestVersion": "No",
+        "DaysActive": 0,
+        "LastActiveDate": "",
+        "TotalEncounters": 0,
+        "Events_Encounters": 0,
+        "Events_Clinical_Doc": 0,
+        "Events_Scripts": 0,
+        "Events_Pathology": 0,
+        "Events_AI_Features": 0,
+        "Events_Preventative_Care": 0,
+        "Events_Task_Management": 0,
+        "Events_Customization": 0
+      }
+    ]
+  }
+}
