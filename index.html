@@ -703,10 +703,38 @@ function doLogin(){
   else document.getElementById('ae').style.display='block';
 }
 function logout(){sessionStorage.removeItem('hbc-role');location.reload();}
-// ── WEB APP CONFIG ──────────────────────────────────────────────────
+// ── DATA CONFIG (Approach B: same-origin bundle on GitHub Pages) ─────
+// Place data.json next to this HTML (or set a path under your Pages root).
+// Bundle shape: { "generatedAt": "ISO-8601", "metadata": {...}, "bcOwnership": {...}, "clientSummary": {...} }
+// Each part matches the JSON your Apps Script already returns per ?sheet=.
+// Set DATA_BUNDLE_URL to '' to use only Apps Script below.
+const DATA_BUNDLE_URL = 'data.json';
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 0 = disabled
+// Legacy: direct Apps Script (often blocked from github.io for Workspace-only deploys)
 const WEB_APP_URL = 'https://script.google.com/a/macros/healthbridge.co.za/s/AKfycbyojd6LP-prQjr-T2JdGzEROuRqbNFFBgT-_rCQanz8Ump2q3itTkY_4n0cqSdACaDL/exec';
 const API_TOKEN   = 'hbc-dash-2026-xK9mQpLw';
 let _lastBcRows = 0;
+let _liveDataInFlight = false;
+let _liveRefreshTimer = null;
+
+function rebuildFilterDropdowns() {
+  const bcSel = document.getElementById('gf-bc');
+  const tSel = document.getElementById('gf-team');
+  if (bcSel) {
+    bcSel.innerHTML = '<option value="">All BCs</option>';
+    BCS.forEach(b => { const o = document.createElement('option'); o.value = b.name; o.textContent = b.name; bcSel.appendChild(o); });
+  }
+  if (tSel) {
+    tSel.innerHTML = '<option value="">All teams</option>';
+    TEAMS.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; tSel.appendChild(o); });
+  }
+}
+
+function scheduleLiveRefresh() {
+  if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
+  if (!AUTO_REFRESH_MS) return;
+  _liveRefreshTimer = setInterval(function() { loadLiveData(); }, AUTO_REFRESH_MS);
+}
 
 // ── LIVE DATA STATUS HELPERS ─────────────────────────────────────────
 function setLiveStatus(msg, type) {
@@ -785,95 +813,173 @@ function updateFreshnessBar(info) {
 // Apps Script CORS note: the deployed URL may redirect to a login page if
 // the Workspace domain restricts public access. We try fetch() first; if
 // the response is HTML (login redirect) we surface a clear error.
-async function apiFetch(sheet, timeoutMs) {
-  const url = WEB_APP_URL + '?sheet=' + sheet + '&token=' + API_TOKEN;
-
-  // Use Promise.race for timeout — AbortController/AbortSignal cannot be
-  // cloned across iframe boundaries and throws in sandboxed environments.
+async function fetchJsonWithTimeout(url, timeoutMs, labelForErrors) {
   const fetchPromise = fetch(url).then(async res => {
     const text = await res.text();
+    if (!res.ok) {
+      setLiveStatus((labelForErrors || url) + ' HTTP ' + res.status, 'warn');
+      return null;
+    }
     if (text.trim().startsWith('<')) {
-      setLiveStatus('API returned a login/HTML redirect. In Apps Script → Deploy → Manage Deployments → Edit → Who has access → set to "Anyone" (not "Anyone within Healthbridge").', 'error');
+      setLiveStatus((labelForErrors || 'Request') + ' returned HTML (login page or wrong URL).', 'error');
       showRetryButton();
       return null;
     }
-    return JSON.parse(text);
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      setLiveStatus('Invalid JSON from ' + (labelForErrors || url) + ': ' + e.message, 'error');
+      return null;
+    }
   });
-
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), timeoutMs)
   );
-
   try {
     return await Promise.race([fetchPromise, timeoutPromise]);
   } catch (err) {
     if (err.message === 'timeout') {
-      setLiveStatus(sheet + ' request timed out after ' + Math.round(timeoutMs/1000) + 's — API may be slow or unreachable', 'warn');
+      setLiveStatus((labelForErrors || 'Request') + ' timed out after ' + Math.round(timeoutMs / 1000) + 's', 'warn');
     } else {
-      setLiveStatus('Fetch error (' + sheet + '): ' + err.message, 'error');
+      setLiveStatus('Fetch error (' + (labelForErrors || url) + '): ' + err.message, 'error');
     }
     return null;
   }
 }
 
+async function apiFetch(sheet, timeoutMs) {
+  const url = WEB_APP_URL + '?sheet=' + sheet + '&token=' + API_TOKEN;
+
+  // Use Promise.race for timeout — AbortController/AbortSignal cannot be
+  // cloned across iframe boundaries and throws in sandboxed environments.
+  return fetchJsonWithTimeout(url, timeoutMs, sheet);
+}
+
+function pickBundleParts(bundle) {
+  if (!bundle || typeof bundle !== 'object') return null;
+  const meta = bundle.metadata || bundle.Metadata;
+  const bcData = bundle.bcOwnership || bundle.BCOwnership;
+  const sheetData = bundle.clientSummary || bundle.ClientSummary;
+  return { meta, bcData, sheetData, generatedAt: bundle.generatedAt || bundle.GeneratedAt };
+}
+
+function lastRefreshedFromMeta(meta, generatedAt) {
+  if (meta && meta.rows) {
+    const lastRefRow = meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
+    if (lastRefRow && lastRefRow.Value) return String(lastRefRow.Value);
+  }
+  if (generatedAt) return String(generatedAt);
+  return null;
+}
+
+function applyLatestVersionFromMeta(meta) {
+  if (!meta || !meta.rows) return;
+  const latestVerRow = meta.rows.find(r => r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION');
+  if (latestVerRow) LATEST_VER = String(latestVerRow.Value).trim();
+}
+
 // ── MAIN LIVE-DATA LOADER ─────────────────────────────────────────────
 async function loadLiveData() {
-  if (!WEB_APP_URL) {
-    setLiveStatus('No WEB_APP_URL set', 'warn');
-    return;
-  }
+  if (_liveDataInFlight) return;
+  _liveDataInFlight = true;
+  try {
+    updateLagBadge('⏳ Loading data…');
 
-  updateLagBadge('⏳ Connecting to live data…');
-  setLiveStatus('[1/3] Probing API…', 'info');
+    if (DATA_BUNDLE_URL) {
+      const bust = (DATA_BUNDLE_URL.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
+      const bundleUrl = DATA_BUNDLE_URL + bust;
+      setLiveStatus('Fetching data.json…', 'info');
+      const raw = await fetchJsonWithTimeout(bundleUrl, 60000, 'data.json');
+      const parts = pickBundleParts(raw);
+      if (parts && parts.sheetData && parts.sheetData.rows && parts.sheetData.rows.length && !parts.sheetData.error) {
+        const lastRefStr = lastRefreshedFromMeta(parts.meta, parts.generatedAt);
+        applyLatestVersionFromMeta(parts.meta);
 
-  // Step 1 — Metadata (connectivity probe + freshness info)
-  const meta = await apiFetch('Metadata', 15000);
-  if (!meta || meta.error) {
-    setLiveStatus('[1/3] API unreachable: ' + (meta?.message || 'no response'), 'error');
-    showRetryButton();
-    return;
-  }
+        setLiveStatus('[bundle] Metadata ✓ · latest app: ' + LATEST_VER, 'ok');
 
-  const lastRefRow  = meta.rows && meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
-  const lastRefStr  = lastRefRow ? lastRefRow.Value : null;
-  const latestVerRow = meta.rows && meta.rows.find(r => r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION');
-  if (latestVerRow) LATEST_VER = String(latestVerRow.Value).trim();
+        if (parts.bcData && !parts.bcData.error && parts.bcData.rows && parts.bcData.rows.length > 0) {
+          applyBCOwnership_(parts.bcData.rows);
+          _lastBcRows = parts.bcData.rows.length;
+          setLiveStatus('[bundle] BC ownership (' + parts.bcData.rows.length + ' rows) ✓', 'ok');
+        } else {
+          setLiveStatus('[bundle] BCOwnership missing or empty — using embedded BC list', 'warn');
+        }
 
-  setLiveStatus('[1/3] API connected ✓ · refreshed: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
+        setLiveStatus('[bundle] ClientSummary (' + (parts.sheetData.rowCount || parts.sheetData.rows.length) + ' rows) ✓', 'ok');
+        applyLiveData(parts.sheetData, 'static bundle (data.json)');
+        rebuildFilterDropdowns();
+        applyF();
 
-  // Step 2 — BCOwnership (builds CLIENTS master list)
-  setLiveStatus('[2/3] Fetching BCOwnership…', 'info');
-  const bcData = await apiFetch('BCOwnership', 20000);
-  if (bcData && !bcData.error && bcData.rows && bcData.rows.length > 0) {
-    applyBCOwnership_(bcData.rows);
-    _lastBcRows = bcData.rows.length;
-    setLiveStatus('[2/3] BC ownership applied (' + bcData.rows.length + ' rows) ✓', 'ok');
-  } else {
-    setLiveStatus('[2/3] BCOwnership unavailable — ' + (bcData?.message || 'no rows'), 'warn');
-  }
+        updateLagBadge('✅ Data · ' + (lastRefStr || 'updated'));
+        updateFreshnessBar({
+          lastRefreshed: lastRefStr,
+          source: 'data.json (same origin)',
+          latestVersion: LATEST_VER,
+          clients: parts.sheetData.rowCount || parts.sheetData.rows.length,
+          bcRows: _lastBcRows || 0,
+        });
+        return;
+      }
+      setLiveStatus('data.json missing or invalid — falling back to Apps Script if configured', 'warn');
+    }
 
-  // Step 3 — ClientSummary (usage telemetry)
-  setLiveStatus('[3/3] Fetching ClientSummary…', 'info');
-  const sheetData = await apiFetch('ClientSummary', 30000);
-  if (!sheetData || sheetData.error) {
-    setLiveStatus('ClientSummary failed: ' + (sheetData?.message || 'no response'), 'warn');
-    showRetryButton();
+    if (!WEB_APP_URL) {
+      setLiveStatus('Set DATA_BUNDLE_URL (and publish data.json) or WEB_APP_URL', 'error');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    setLiveStatus('[1/3] Probing API…', 'info');
+
+    const meta = await apiFetch('Metadata', 15000);
+    if (!meta || meta.error) {
+      setLiveStatus('[1/3] API unreachable: ' + (meta?.message || 'no response'), 'error');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    const lastRefStr = lastRefreshedFromMeta(meta, null);
+    applyLatestVersionFromMeta(meta);
+
+    setLiveStatus('[1/3] API connected ✓ · refreshed: ' + (lastRefStr || 'unknown') + ' · latest app: ' + LATEST_VER, 'ok');
+
+    setLiveStatus('[2/3] Fetching BCOwnership…', 'info');
+    const bcData = await apiFetch('BCOwnership', 20000);
+    if (bcData && !bcData.error && bcData.rows && bcData.rows.length > 0) {
+      applyBCOwnership_(bcData.rows);
+      _lastBcRows = bcData.rows.length;
+      setLiveStatus('[2/3] BC ownership applied (' + bcData.rows.length + ' rows) ✓', 'ok');
+    } else {
+      setLiveStatus('[2/3] BCOwnership unavailable — ' + (bcData?.message || 'no rows'), 'warn');
+    }
+
+    setLiveStatus('[3/3] Fetching ClientSummary…', 'info');
+    const sheetData = await apiFetch('ClientSummary', 30000);
+    if (!sheetData || sheetData.error) {
+      setLiveStatus('ClientSummary failed: ' + (sheetData?.message || 'no response'), 'warn');
+      showRetryButton();
+      applyF();
+      return;
+    }
+
+    setLiveStatus('[3/3] Received ' + (sheetData.rowCount || 0) + ' rows from ClientSummary ✓', 'ok');
+    applyLiveData(sheetData, 'Google Apps Script API');
+    rebuildFilterDropdowns();
     applyF();
-    return;
+
+    updateLagBadge('✅ Live data · refreshed ' + (lastRefStr || 'recently'));
+    updateFreshnessBar({
+      lastRefreshed: lastRefStr,
+      source: 'Azure App Insights → Google Sheets',
+      latestVersion: LATEST_VER,
+      clients: sheetData.rowCount || 0,
+      bcRows: _lastBcRows || 0,
+    });
+  } finally {
+    _liveDataInFlight = false;
   }
-
-  setLiveStatus('[3/3] Received ' + (sheetData.rowCount || 0) + ' rows from ClientSummary ✓', 'ok');
-  applyLiveData(sheetData);
-  applyF();
-
-  updateLagBadge('✅ Live data · refreshed ' + (lastRefStr || 'recently'));
-  updateFreshnessBar({
-    lastRefreshed: lastRefStr,
-    source: 'Azure App Insights → Google Sheets',
-    latestVersion: LATEST_VER,
-    clients: sheetData.rowCount || 0,
-    bcRows: _lastBcRows || 0,
-  });
 }
 
 // ── APPLY BC OWNERSHIP FROM BCOwnership SHEET ─────────────────────────
@@ -958,7 +1064,8 @@ function applyBCOwnership_(rows) {
 }
 
 // ── APPLY LIVE USAGE DATA FROM ClientSummary SHEET ─────────────────────────
-function applyLiveData(sheetData) {
+function applyLiveData(sheetData, dataSourceLabel) {
+  const srcLabel = dataSourceLabel || 'Google Apps Script API';
   // Confirmed ClientSummary columns:
   // BPN, PracticeName, PMA, AppVersion, OnLatestVersion, DaysActive,
   // LastActiveDate, TotalEncounters, EncounterUserDays, FeatureOnlyUserDays,
@@ -1061,7 +1168,7 @@ function applyLiveData(sheetData) {
     ew.style.background = 'rgba(117,235,158,.12)';
     ew.style.borderColor = 'rgba(117,235,158,.5)';
     ew.style.color = '#166534';
-    ew.innerHTML = '<span style="font-size:20px;flex-shrink:0">&#x2705;</span><span><strong>Live data loaded successfully.</strong> Showing real client data from the Google Apps Script API.</span>';
+    ew.innerHTML = '<span style="font-size:20px;flex-shrink:0">&#x2705;</span><span><strong>Data loaded successfully.</strong> Source: ' + srcLabel + '.</span>';
     setTimeout(() => { if(ew) ew.style.display = 'none'; }, 4000);
   }
   // Remove any error diagnostic panel
@@ -1112,6 +1219,7 @@ function boot(){
   applyF();
   initCharts();
   loadLiveData();
+  scheduleLiveRefresh();
 }
 
 // ── FILTERS ──
