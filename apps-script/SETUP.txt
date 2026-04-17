@@ -26,6 +26,9 @@ Use: SyncDataToGitHub.gs (runs inside Google as YOU, pushes data.json to GitHub)
 5) Schedule (optional)
    - Run setupSyncTrigger_() once in the editor, OR
    - Triggers (clock) → Add trigger → syncDataJsonToGitHub → Day timer → time
+   - If you get email "Script function not found: setupTrigger": your trigger still
+     points at an old function name. Edit the trigger to syncDataJsonToGitHub, OR
+     paste the latest SyncDataToGitHub.gs (includes a setupTrigger() alias that runs the sync).
 
 6) GitHub Actions (optional)
    - You can turn off the failing "Update HbC data bundle" schedule in

@@ -184,3 +184,12 @@ function setupSyncTrigger_() {
     .atHour(3)
     .create();
 }
+
+/**
+ * If an old clock trigger still calls "setupTrigger", Google emails
+ * "Script function not found: setupTrigger". This alias runs the real sync.
+ * Better fix: Triggers → edit that trigger → choose function syncDataJsonToGitHub, then delete this alias if you want.
+ */
+function setupTrigger() {
+  syncDataJsonToGitHub();
+}
