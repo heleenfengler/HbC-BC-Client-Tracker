@@ -1095,27 +1095,82 @@ function applyBCOwnership_(rows) {
   console.log('[HbC BC] Built ' + CLIENTS.length + ' clients from BCOwnership');
 }
 
+// ── ClientSummary row keys (Sheets headers vary: spaces, spelling, casing) ─
+function clientSummaryHeaderResolver_(sampleRow) {
+  if (!sampleRow || typeof sampleRow !== 'object') {
+    return function resolveKey() { return null; };
+  }
+  const keys = Object.keys(sampleRow);
+  const canon = (s) =>
+    String(s || '')
+      .replace(/\u00a0/g, ' ')
+      .trim()
+      .replace(/\s+/g, '')
+      .replace(/_/g, '')
+      .toLowerCase();
+  const byCanon = Object.create(null);
+  keys.forEach((k) => { byCanon[canon(k)] = k; });
+  return function resolveKey() {
+    const aliases = Array.prototype.slice.call(arguments);
+    for (let i = 0; i < aliases.length; i++) {
+      const a = aliases[i];
+      if (a && Object.prototype.hasOwnProperty.call(sampleRow, a)) return a;
+    }
+    for (let i = 0; i < aliases.length; i++) {
+      const c = canon(aliases[i]);
+      if (byCanon[c]) return byCanon[c];
+    }
+    return null;
+  };
+}
+
+function cellNum_(r, resolveKey) {
+  const aliases = Array.prototype.slice.call(arguments, 2);
+  for (let i = 0; i < aliases.length; i++) {
+    const a = aliases[i];
+    if (a && Object.prototype.hasOwnProperty.call(r, a)) {
+      const v = Number(r[a]);
+      if (!Number.isNaN(v)) return v;
+    }
+  }
+  const k = resolveKey.apply(null, aliases);
+  return k ? (Number(r[k]) || 0) : 0;
+}
+
+function cellStr_(r, resolveKey) {
+  const aliases = Array.prototype.slice.call(arguments, 2);
+  for (let i = 0; i < aliases.length; i++) {
+    const a = aliases[i];
+    if (a && Object.prototype.hasOwnProperty.call(r, a) && r[a] != null && String(r[a]).trim() !== '') {
+      return String(r[a]).trim();
+    }
+  }
+  const k = resolveKey.apply(null, aliases);
+  return k && r[k] != null ? String(r[k]).trim() : '';
+}
+
 // ── FEATURE MAP FROM ClientSummary (aggregated event columns) ─────────────
 function rebuildFeatureMapFromSheetData_(sheetData) {
   if (!sheetData || !sheetData.rows || !sheetData.rows.length) return;
+  const sample = sheetData.rows.find(rr => rr && typeof rr === 'object' && Object.keys(rr).length) || sheetData.rows[0];
+  const rk = clientSummaryHeaderResolver_(sample);
   const pairs = [
-    ['Events_Encounters', 'Encounters'],
-    ['Events_Clinical_Doc', 'Clinical Doc'],
-    ['Events_Scripts', 'Scripts'],
-    ['Events_Pathology', 'Pathology'],
-    ['Events_AI_Features', 'AI Features'],
-    ['Events_Preventative_Care', 'Preventative Care'],
-    ['Events_Task_Management', 'Task Mgmt'],
-    ['Events_Customization', 'Customisation'],
+    [['Events_Encounters', 'Events Encounters'], 'Encounters'],
+    [['Events_Clinical_Doc', 'Events Clinical Doc'], 'Clinical Doc'],
+    [['Events_Scripts', 'Events Scripts'], 'Scripts'],
+    [['Events_Pathology', 'Events Pathology'], 'Pathology'],
+    [['Events_AI_Features', 'Events AI Features'], 'AI Features'],
+    [['Events_Preventative_Care', 'Events Preventative Care'], 'Preventative Care'],
+    [['Events_Task_Management', 'Events Task Management'], 'Task Mgmt'],
+    [['Events_Customization', 'Events Customisation', 'Events Customization'], 'Customisation'],
   ];
   Object.keys(FEATURES_MAP).forEach(k => { delete FEATURES_MAP[k]; });
-  pairs.forEach(([col, cat]) => {
+  pairs.forEach(([aliasList, cat]) => {
     let sum = 0;
-    sheetData.rows.forEach(r => { sum += Number(r[col]) || 0; });
+    sheetData.rows.forEach(r => { sum += cellNum_.apply(null, [r, rk].concat(aliasList)); });
     FEATURES_MAP[cat] = [{ n: 'All practices · sum from ClientSummary', c: sum }];
   });
   const totalPerCat = CATS.map(c => (FEATURES_MAP[c] || [{ c: 0 }]).reduce((a, f) => a + f.c, 0));
-  const maxT = Math.max(...totalPerCat, 1);
   dCAT = CATS.map((c, i) => {
     const v = totalPerCat[i];
     return D30.map((_, di) => (di === D30.length - 1 ? v : 0));
@@ -1130,6 +1185,101 @@ function refreshCategoryPieChart_() {
   const data = CATS.map(c => (FEATURES_MAP[c] || []).reduce((a, f) => a + f.c, 0));
   ch.data.datasets[0].data = data;
   ch.update();
+}
+
+/** ClientSummary has no daily series — spread snapshot counts across D30 so charts are readable */
+function hydrateSnapshotTrendCharts_() {
+  const n = Math.max(D30.length, 1);
+  const nEncUsers = CLIENTS.filter(c => c.enc > 0).length;
+  const nFeatOnly = CLIENTS.filter(c => c.enc <= 0 && c.feat > 0).length;
+  const totalEnc = CLIENTS.reduce((a, c) => a + (Number(c.enc) || 0), 0);
+  const dailyEnc = totalEnc / n;
+  const vEu = nEncUsers / n;
+  const vFo = nFeatOnly / n;
+  dEU = D30.map(() => vEu);
+  dFO = D30.map(() => vFo);
+  dEC = D30.map(() => dailyEnc);
+  dMA = dEC.map((_, i, arr) => {
+    let s = 0;
+    const j0 = Math.max(0, i - 6);
+    for (let j = j0; j <= i; j++) s += arr[j];
+    return s / (i - j0 + 1);
+  });
+}
+
+/** initCharts() created these with empty CLIENTS — refresh after telemetry merge */
+function refreshExecChartsAfterLive_() {
+  if (!window.Chart) return;
+  hydrateSnapshotTrendCharts_();
+  ['c-el', 'c-du'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ch = Chart.getChart(el);
+    if (!ch || !ch.data.datasets[1]) return;
+    ch.data.datasets[0].data = dEU.slice();
+    ch.data.datasets[1].data = dFO.slice();
+    ch.update();
+  });
+  const ea = document.getElementById('c-ea');
+  if (ea) {
+    const ch = Chart.getChart(ea);
+    if (ch && ch.data.datasets[1]) {
+      ch.data.datasets[0].data = dEC.slice();
+      ch.data.datasets[1].data = dMA.slice();
+      ch.update();
+    }
+  }
+  const et = document.getElementById('c-et');
+  if (et) {
+    const ch = Chart.getChart(et);
+    if (ch && ch.data.datasets[0]) {
+      ch.data.labels = TEAMS.slice();
+      ch.data.datasets[0].data = TEAMS.map(t => CLIENTS.filter(c => c.bc && c.bc.team === t).length);
+      ch.update();
+    }
+  }
+  const pr = document.getElementById('c-pr');
+  if (pr) {
+    const pc = { Power: 0, Std: 0, Adm: 0, Cas: 0 };
+    CLIENTS.forEach(c => {
+      if (c.per === 'Power Clinical User') pc.Power++;
+      else if (c.per === 'Standard Clinical User') pc.Std++;
+      else if (c.per === 'Admin/Power Support') pc.Adm++;
+      else pc.Cas++;
+    });
+    const ch = Chart.getChart(pr);
+    if (ch && ch.data.datasets[0]) {
+      ch.data.datasets[0].data = [pc.Power, pc.Std, pc.Adm, pc.Cas];
+      ch.update();
+    }
+  }
+  const tc = document.getElementById('c-tc');
+  if (tc) {
+    const top = [...CLIENTS].filter(c => c.enc > 0).sort((a, b) => b.enc - a.enc).slice(0, 10);
+    const ch = Chart.getChart(tc);
+    if (ch && ch.data.datasets[0]) {
+      ch.data.labels = top.map(c => (c.name.length > 24 ? c.name.slice(0, 24) + '…' : c.name));
+      ch.data.datasets[0].data = top.map(c => c.enc);
+      ch.data.datasets[0].backgroundColor = top.map((_, i) => (i === 0 ? OR : `rgba(247,148,29,${0.85 - i * 0.07})`));
+      ch.update();
+    }
+  }
+  const sc = document.getElementById('c-sc');
+  if (sc) {
+    const ch = Chart.getChart(sc);
+    if (ch) {
+      ch.data.datasets = Object.entries(PC).map(([per, col]) => ({
+        label: per,
+        data: CLIENTS.filter(c => c.enc > 0 && c.per === per).map(c => ({
+          x: c.enc, y: c.ai, r: Math.max(6, Math.min(20, c.da * 0.72)), n: c.name,
+        })),
+        backgroundColor: col + '99',
+        borderColor: col,
+        borderWidth: 1.5,
+      }));
+      ch.update();
+    }
+  }
 }
 
 // ── APPLY LIVE USAGE DATA FROM ClientSummary SHEET ─────────────────────────
@@ -1148,19 +1298,31 @@ function applyLiveData(sheetData, dataSourceLabel) {
     return;
   }
 
+  const sampleRow = sheetData.rows.find(rr => rr && typeof rr === 'object' && Object.keys(rr).length) || sheetData.rows[0];
+  const rk = clientSummaryHeaderResolver_(sampleRow);
+  const bpnCol = rk('BPN', 'Practice BPN', 'PracticeBPN', 'BPN Number') || 'BPN';
+
+  const EVENT_ALIASES = [
+    ['Events_Encounters', 'Events Encounters'],
+    ['Events_Clinical_Doc', 'Events Clinical Doc'],
+    ['Events_Scripts', 'Events Scripts'],
+    ['Events_Pathology', 'Events Pathology'],
+    ['Events_AI_Features', 'Events AI Features'],
+    ['Events_Preventative_Care', 'Events Preventative Care'],
+    ['Events_Task_Management', 'Events Task Management'],
+    ['Events_Customization', 'Events Customisation', 'Events Customization'],
+  ];
+  function featSum_(r) {
+    return EVENT_ALIASES.reduce((acc, al) => acc + cellNum_.apply(null, [r, rk].concat(al)), 0);
+  }
+
   // Build fast BPN lookup — BPN may be numeric in sheet, normalise to string no leading zeros
   const liveMap = {};
   sheetData.rows.forEach(r => {
-    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    const raw = r[bpnCol] != null ? r[bpnCol] : r.BPN;
+    const key = String(raw != null ? raw : '').replace(/^0+/, '').trim();
     if (key) liveMap[key] = r;
   });
-
-  // Meaningful event categories (excludes Noise)
-  const catKeys = [
-    'Events_Encounters', 'Events_Clinical_Doc', 'Events_Scripts',
-    'Events_Pathology',  'Events_AI_Features',  'Events_Preventative_Care',
-    'Events_Task_Management', 'Events_Customization',
-  ];
 
   let enriched = 0;
   let added    = 0;
@@ -1172,26 +1334,32 @@ function applyLiveData(sheetData, dataSourceLabel) {
     if (!live) return;   // no telemetry — stays enc=0, liveData=false
 
     c.liveData = true;
-    c.enc      = Number(live.TotalEncounters)    || 0;
-    c.da       = Number(live.DaysActive)          || 0;
-    c.feat     = catKeys.reduce((a,k) => a + (Number(live[k]) || 0), 0);
-    c.ai       = Number(live.Events_AI_Features)  || 0;
-    c.lastA    = live.LastActiveDate ? String(live.LastActiveDate).slice(0, 10) : '';
+    c.enc      = cellNum_(live, rk, 'TotalEncounters', 'Total Encounters');
+    c.da       = cellNum_(live, rk, 'DaysActive', 'Days Active');
+    c.feat     = featSum_(live);
+    c.ai       = cellNum_(live, rk, 'Events_AI_Features', 'Events AI Features');
+    const lastRaw = cellStr_(live, rk, 'LastActiveDate', 'Last Active Date');
+    c.lastA    = lastRaw ? lastRaw.slice(0, 10) : '';
 
-    if (live.AppVersion) {
-      c.appVer   = String(live.AppVersion);
-      c.onLatest = live.OnLatestVersion === 'Yes' || live.OnLatestVersion === true;
+    const av = cellStr_(live, rk, 'AppVersion', 'App version');
+    const onLatestStr = cellStr_(live, rk, 'OnLatestVersion', 'On Latest Version');
+    if (av) c.appVer = av;
+    if (onLatestStr || live.OnLatestVersion === true) {
+      c.onLatest = /^(yes|true|1)$/i.test(onLatestStr) || live.OnLatestVersion === true;
     }
     // TreatingProviders column — split into provs array for BC view
-    if (live.TreatingProviders) {
-      c.provs = String(live.TreatingProviders).split(',')
-                  .map(p => ({ name: p.trim(), tpn: '' }))
-                  .filter(p => p.name);
+    const tp = cellStr_(live, rk, 'TreatingProviders', 'Treating Providers');
+    if (tp) {
+      c.provs = tp.split(',')
+        .map(p => ({ name: p.trim(), tpn: '' }))
+        .filter(p => p.name);
     }
     // PMA from telemetry is most accurate
-    if (live.PMA) c.pma = live.PMA;
+    const pmaS = cellStr_(live, rk, 'PMA', 'Pma');
+    if (pmaS) c.pma = pmaS;
     // Fill in name if 3C had none
-    if (!c.name || c.name === c.bpn) c.name = String(live.PracticeName || c.bpn);
+    const pn = cellStr_(live, rk, 'PracticeName', 'Practice name', 'CompanyName');
+    if (!c.name || c.name === c.bpn) c.name = pn || String(live.PracticeName || c.bpn);
 
     // Re-derive engagement persona
     const isAct = /^(active|trial|inprogress|in.?progress)$/i.test((c.status||'').replace(/\s/g,''));
@@ -1204,32 +1372,43 @@ function applyLiveData(sheetData, dataSourceLabel) {
 
   // Step 2 — add telemetry-only BPNs not in BCOwnership (e.g. new sign-ups)
   sheetData.rows.forEach(r => {
-    const key = String(r.BPN || '').replace(/^0+/, '').trim();
+    const rawBpn = r[bpnCol] != null ? r[bpnCol] : r.BPN;
+    const key = String(rawBpn != null ? rawBpn : '').replace(/^0+/, '').trim();
     if (!key) return;
     if (CLIENTS.find(c => String(c.bpn||'').replace(/^0+/,'').trim() === key)) return;
 
-    const enc  = Number(r.TotalEncounters) || 0;
-    const da   = Number(r.DaysActive)       || 0;
-    const feat = catKeys.reduce((a,k) => a + (Number(r[k]) || 0), 0);
-    const ai   = Number(r.Events_AI_Features) || 0;
+    const enc  = cellNum_(r, rk, 'TotalEncounters', 'Total Encounters');
+    const da   = cellNum_(r, rk, 'DaysActive', 'Days Active');
+    const feat = featSum_(r);
+    const ai   = cellNum_(r, rk, 'Events_AI_Features', 'Events AI Features');
     const per  = enc > 200 && da > 18 ? 'Power Clinical User'
                : enc > 50             ? 'Standard Clinical User'
                : feat > 300           ? 'Admin/Power Support' : 'Casual User';
 
+    const lastR2 = cellStr_(r, rk, 'LastActiveDate', 'Last Active Date');
+    const nm = cellStr_(r, rk, 'PracticeName', 'Practice name', 'CompanyName') || String(r.PracticeName || key);
+    const pmaR = cellStr_(r, rk, 'PMA', 'Pma') || 'myMPS';
+    const appVR = cellStr_(r, rk, 'AppVersion', 'App version') || '—';
+    const onLatestStr2 = cellStr_(r, rk, 'OnLatestVersion', 'On Latest Version');
+
     CLIENTS.push({
       bpn: key, liveData: true,
-      name:   String(r.PracticeName || key),
+      name: nm,
       owner: '', team: '', spec: '', status: 'active', cs: 'active',
-      pma:    r.PMA || 'myMPS',
-      appVer: String(r.AppVersion || '—'),
-      onLatest: r.OnLatestVersion === 'Yes',
-      lastA:  r.LastActiveDate ? String(r.LastActiveDate).slice(0, 10) : '',
+      pma: pmaR,
+      appVer: appVR,
+      onLatest: /^(yes|true|1)$/i.test(onLatestStr2) || r.OnLatestVersion === 'Yes',
+      lastA: lastR2 ? lastR2.slice(0, 10) : '',
       enc, da, feat, ai, per,
       bc: null, ownership: null, provs: [],
       contractStart: '—', tier: 'T1',
     });
     added++;
   });
+
+  if (enriched === 0 && sheetData.rows.length > 0) {
+    console.warn('[HbC] No ClientSummary rows matched BCOwnership BPNs — check BPN / column names. Sample ClientSummary keys:', Object.keys(sampleRow || {}));
+  }
 
   window._liveDataLoaded = true;
   const ew = document.getElementById('embedded-warning');
@@ -1251,6 +1430,7 @@ function applyLiveData(sheetData, dataSourceLabel) {
   buildFeatureBars();
   refreshCategoryPieChart_();
   if (typeof window.__hbcRefreshStackedCategoryChart === 'function') window.__hbcRefreshStackedCategoryChart();
+  refreshExecChartsAfterLive_();
 }
 
 // ── BOOT ──
