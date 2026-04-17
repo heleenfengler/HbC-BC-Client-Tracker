@@ -21,10 +21,10 @@ jobs:
   bundle:
     runs-on: ubuntu-latest
     steps:
-      # v5+ uses Node 24 for the action runtime (avoids Node 20 deprecation warnings on v4)
-      - uses: actions/checkout@v5
+      # v6 runs on Node 24 inside the action (GitHub still shows Node 20 warnings on "pages build and deployment" — that is a different workflow)
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
 
