@@ -4,6 +4,10 @@
 
 name: Update HbC data bundle
 
+# GitHub’s deprecation notice often still appears on "pages build and deployment" (their workflow, still on v4). This opt-in helps any JS actions in *this* workflow use Node 24.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   workflow_dispatch:
   schedule:
