@@ -22,7 +22,7 @@ const outPath = process.env.OUT_PATH || path.join(root, 'data.json');
 const SHEETS = ['Metadata', 'BCOwnership', 'ClientSummary'];
 const TIMEOUT_MS = 120000;
 
-/** GitHub secrets sometimes include accidental quotes or newlines */
+/** GitHub secrets sometimes include accidental quotes, newlines, or invisible Unicode */
 function cleanEnv(s) {
   if (!s || typeof s !== 'string') return '';
   let t = s.trim().replace(/\r?\n/g, '');
@@ -30,6 +30,29 @@ function cleanEnv(s) {
     t = t.slice(1, -1).trim();
   }
   return t;
+}
+
+function stripInvisible(s) {
+  return String(s).replace(/[\u200b-\u200d\ufeff\u00a0]/g, '').trim();
+}
+
+/** Use first line that looks like a URL (secrets pasted from email often have extra lines) */
+function normalizeAppsScriptBaseUrl(raw) {
+  let s = stripInvisible(cleanEnv(raw));
+  const lines = s.split(/\r?\n/).map((l) => stripInvisible(l)).filter(Boolean);
+  const urlLine = lines.find((l) => /^https?:\/\//i.test(l)) || lines[0] || '';
+  s = stripInvisible(urlLine);
+  // Trim query string if someone pasted full ?sheet=... URL — keep base /exec only
+  const q = s.indexOf('?');
+  if (q > 0) s = s.slice(0, q).trim();
+  // Collapse accidental spaces in the middle of the host/path (common paste error)
+  s = s.replace(/\s+/g, '');
+  return s;
+}
+
+function normalizeToken(raw) {
+  const lines = stripInvisible(cleanEnv(raw)).split(/\r?\n/).map((l) => stripInvisible(l)).filter(Boolean);
+  return lines[0] || '';
 }
 
 function placeholderBundle() {
@@ -75,7 +98,9 @@ async function fetchSheet(baseUrl, token, sheet) {
   try {
     u = new URL(baseUrl);
   } catch (e) {
-    throw new Error(`Invalid HBC_WEB_APP_URL (must be full https URL ending in /exec): ${e.message}`);
+    const hint =
+      'Check GitHub secret HBC_WEB_APP_URL: must be one line, start with https://, end with /exec, no ?sheet= or &token=. ';
+    throw new Error(`${hint}(${e.message})`);
   }
   u.searchParams.set('sheet', sheet);
   u.searchParams.set('token', token);
@@ -104,10 +129,21 @@ async function fetchSheet(baseUrl, token, sheet) {
 }
 
 async function buildFromApi() {
-  const baseUrl = cleanEnv(process.env.HBC_WEB_APP_URL || '');
-  const token = cleanEnv(process.env.HBC_API_TOKEN || '');
+  const baseUrl = normalizeAppsScriptBaseUrl(process.env.HBC_WEB_APP_URL || '');
+  const token = normalizeToken(process.env.HBC_API_TOKEN || '');
+  if (!baseUrl) {
+    throw new Error('HBC_WEB_APP_URL is empty after cleanup — re-save the secret (one line, full https…/exec URL).');
+  }
   if (!/^https?:\/\//i.test(baseUrl)) {
     throw new Error('HBC_WEB_APP_URL must start with https:// (check the secret for typos or extra characters)');
+  }
+  try {
+    new URL(baseUrl);
+  } catch (e) {
+    throw new Error(
+      `HBC_WEB_APP_URL is not a valid URL: ${e.message}. ` +
+        `Length=${baseUrl.length}. Starts with: ${JSON.stringify(baseUrl.slice(0, 24))}`
+    );
   }
   const out = {};
   for (const sheet of SHEETS) {
@@ -125,8 +161,8 @@ async function buildFromApi() {
 }
 
 async function main() {
-  const hasUrl = !!cleanEnv(process.env.HBC_WEB_APP_URL || '');
-  const hasTok = !!cleanEnv(process.env.HBC_API_TOKEN || '');
+  const hasUrl = !!normalizeAppsScriptBaseUrl(process.env.HBC_WEB_APP_URL || '');
+  const hasTok = !!normalizeToken(process.env.HBC_API_TOKEN || '');
 
   let bundle;
   if (hasUrl && hasTok) {
