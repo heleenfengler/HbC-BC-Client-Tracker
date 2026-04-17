@@ -672,7 +672,7 @@ const CLIENTS = [];
 // These replace embedded synthetic arrays. Charts will be empty until
 // live data loads; TODO: push real telemetry values from AppInsights API.
 const ALL_VERSIONS = ['6.46.0','6.45.0','6.44.0','6.43.0','6.42.0','6.41.1','6.40.1','6.39.0'];
-const FEATURES_MAP = {}; // populated by applyFeaturesMap() after live load
+const FEATURES_MAP = {}; // populated by rebuildFeatureMapFromSheetData_() after ClientSummary load
 // Daily trend arrays — empty until live telemetry endpoint is wired up
 let dEU = D30.map(()=>0);
 let dFO = D30.map(()=>0);
@@ -863,19 +863,47 @@ function pickBundleParts(bundle) {
   return { meta, bcData, sheetData, generatedAt: bundle.generatedAt || bundle.GeneratedAt };
 }
 
-function lastRefreshedFromMeta(meta, generatedAt) {
-  if (meta && meta.rows) {
-    const lastRefRow = meta.rows.find(r => r.Key === 'LastRefreshed_SAST');
-    if (lastRefRow && lastRefRow.Value) return String(lastRefRow.Value);
+/** CI / failed-job bundles can contain one dummy ClientSummary row — do not treat as live data */
+function isPlaceholderOrFailedBundle(bundle) {
+  if (!bundle || typeof bundle !== 'object') return true;
+  if (bundle.bundleFetchError) return true;
+  const note = String(bundle.note || '');
+  if (/placeholder/i.test(note)) return true;
+  const rows = (bundle.clientSummary || bundle.ClientSummary || {}).rows;
+  if (Array.isArray(rows) && rows.length === 1) {
+    const bpn = String(rows[0].BPN || '').replace(/^0+/, '').trim();
+    if (bpn === '999999') return true;
   }
-  if (generatedAt) return String(generatedAt);
-  return null;
+  return false;
+}
+
+function lastRefreshedFromMeta(meta, generatedAt) {
+  let fromMeta = null;
+  if (meta && meta.rows) {
+    const row = meta.rows.find(r => r && r.Key === 'LastRefreshed_SAST');
+    if (row && row.Value != null && row.Value !== '') fromMeta = String(row.Value);
+    if (!fromMeta) {
+      const loose = meta.rows.find(r => r && (r.LastRefreshed_SAST != null || r['LastRefreshed_SAST'] != null));
+      if (loose) fromMeta = String(loose.LastRefreshed_SAST || loose['LastRefreshed_SAST']);
+    }
+  }
+  const gen = generatedAt ? String(generatedAt) : null;
+  if (!fromMeta) return gen;
+  if (!gen) return fromMeta;
+  const tMeta = Date.parse(fromMeta) || 0;
+  const tGen = Date.parse(gen) || 0;
+  // Prefer the newer timestamp so the bar reflects the last data.json sync when the sheet date lags
+  return tGen >= tMeta ? gen : fromMeta;
 }
 
 function applyLatestVersionFromMeta(meta) {
   if (!meta || !meta.rows) return;
-  const latestVerRow = meta.rows.find(r => r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION');
-  if (latestVerRow) LATEST_VER = String(latestVerRow.Value).trim();
+  const latestVerRow = meta.rows.find(r => r && (r.Key === 'LatestVersion' || r.Key === 'LATEST_VERSION'));
+  if (latestVerRow && latestVerRow.Value != null) LATEST_VER = String(latestVerRow.Value).trim();
+  else {
+    const loose = meta.rows.find(r => r && (r.LatestVersion != null || r.LATEST_VERSION != null));
+    if (loose) LATEST_VER = String(loose.LatestVersion || loose.LATEST_VERSION).trim();
+  }
 }
 
 // ── MAIN LIVE-DATA LOADER ─────────────────────────────────────────────
@@ -891,7 +919,9 @@ async function loadLiveData() {
       setLiveStatus('Fetching data.json…', 'info');
       const raw = await fetchJsonWithTimeout(bundleUrl, 60000, 'data.json');
       const parts = pickBundleParts(raw);
-      if (parts && parts.sheetData && parts.sheetData.rows && parts.sheetData.rows.length && !parts.sheetData.error) {
+      if (isPlaceholderOrFailedBundle(raw)) {
+        setLiveStatus('data.json is a placeholder or failed CI bundle — ignoring; trying Apps Script…', 'warn');
+      } else if (parts && parts.sheetData && parts.sheetData.rows && parts.sheetData.rows.length && !parts.sheetData.error) {
         const lastRefStr = lastRefreshedFromMeta(parts.meta, parts.generatedAt);
         applyLatestVersionFromMeta(parts.meta);
 
@@ -920,7 +950,9 @@ async function loadLiveData() {
         });
         return;
       }
-      setLiveStatus('data.json missing or invalid — falling back to Apps Script if configured', 'warn');
+      if (!isPlaceholderOrFailedBundle(raw)) {
+        setLiveStatus('data.json missing or invalid — falling back to Apps Script if configured', 'warn');
+      }
     }
 
     if (!WEB_APP_URL) {
@@ -1063,6 +1095,43 @@ function applyBCOwnership_(rows) {
   console.log('[HbC BC] Built ' + CLIENTS.length + ' clients from BCOwnership');
 }
 
+// ── FEATURE MAP FROM ClientSummary (aggregated event columns) ─────────────
+function rebuildFeatureMapFromSheetData_(sheetData) {
+  if (!sheetData || !sheetData.rows || !sheetData.rows.length) return;
+  const pairs = [
+    ['Events_Encounters', 'Encounters'],
+    ['Events_Clinical_Doc', 'Clinical Doc'],
+    ['Events_Scripts', 'Scripts'],
+    ['Events_Pathology', 'Pathology'],
+    ['Events_AI_Features', 'AI Features'],
+    ['Events_Preventative_Care', 'Preventative Care'],
+    ['Events_Task_Management', 'Task Mgmt'],
+    ['Events_Customization', 'Customisation'],
+  ];
+  Object.keys(FEATURES_MAP).forEach(k => { delete FEATURES_MAP[k]; });
+  pairs.forEach(([col, cat]) => {
+    let sum = 0;
+    sheetData.rows.forEach(r => { sum += Number(r[col]) || 0; });
+    FEATURES_MAP[cat] = [{ n: 'All practices · sum from ClientSummary', c: sum }];
+  });
+  const totalPerCat = CATS.map(c => (FEATURES_MAP[c] || [{ c: 0 }]).reduce((a, f) => a + f.c, 0));
+  const maxT = Math.max(...totalPerCat, 1);
+  dCAT = CATS.map((c, i) => {
+    const v = totalPerCat[i];
+    return D30.map((_, di) => (di === D30.length - 1 ? v : 0));
+  });
+}
+
+function refreshCategoryPieChart_() {
+  const canvas = document.getElementById('c-cp');
+  if (!canvas || !window.Chart) return;
+  const ch = Chart.getChart(canvas);
+  if (!ch) return;
+  const data = CATS.map(c => (FEATURES_MAP[c] || []).reduce((a, f) => a + f.c, 0));
+  ch.data.datasets[0].data = data;
+  ch.update();
+}
+
 // ── APPLY LIVE USAGE DATA FROM ClientSummary SHEET ─────────────────────────
 function applyLiveData(sheetData, dataSourceLabel) {
   const srcLabel = dataSourceLabel || 'Google Apps Script API';
@@ -1177,6 +1246,11 @@ function applyLiveData(sheetData, dataSourceLabel) {
 
   console.log('[HbC] applyLiveData — enriched: ' + enriched + ', added: ' + added + ', total: ' + CLIENTS.length);
   setLiveStatus('Loaded ' + CLIENTS.length + ' practices (' + enriched + ' matched · ' + added + ' telemetry-only)', 'ok');
+
+  rebuildFeatureMapFromSheetData_(sheetData);
+  buildFeatureBars();
+  refreshCategoryPieChart_();
+  if (typeof window.__hbcRefreshStackedCategoryChart === 'function') window.__hbcRefreshStackedCategoryChart();
 }
 
 // ── BOOT ──
@@ -1903,7 +1977,8 @@ function buildFeatureBars(){
     const col=CC[cat]||OR;
     const total=catTotals[cat];
     const isNoise=cat.includes('Noise');
-    const pct=Math.round(total/(isNoise?grandTotal:meaningfulTotal)*100);
+    const denom=isNoise?(grandTotal||1):(meaningfulTotal||1);
+    const pct=Math.round(total/denom*100);
     const features=FEATURES_MAP[cat];
     const maxFeat=Math.max(...features.map(f=>f.c));
 
@@ -2038,6 +2113,8 @@ function initCharts(){
     });
     if(stChart){ stChart.data.datasets=datasets; stChart.update(); }
   }
+
+  window.__hbcRefreshStackedCategoryChart = function(){ if(stChart) updateStChart(); };
 
   buildStChart();
 
