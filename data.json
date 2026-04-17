@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-16T00:00:00.000Z",
-  "note": "Starter file — push to GitHub and run workflow \"Update HbC data bundle\" after adding secrets, or replace manually.",
+  "generatedAt": "2026-04-17T00:38:19.094Z",
+  "note": "Placeholder: live Apps Script fetch failed in CI. See bundleFetchError. Remove HBC_PLACEHOLDER_ON_FETCH_ERROR when fixed.",
   "metadata": {
     "rows": [
       {
         "Key": "LastRefreshed_SAST",
-        "Value": "starter file — not live"
+        "Value": "2026-04-17 00:38:19 (placeholder)"
       },
       {
         "Key": "LATEST_VERSION",
@@ -21,7 +21,7 @@
     "rows": [
       {
         "BPN": "999999",
-        "PracticeName": "Publish this folder to GitHub Pages with index.html + data.json side by side",
+        "PracticeName": "Add HBC_WEB_APP_URL + HBC_API_TOKEN in repo secrets, then re-run workflow",
         "PMA": "myMPS",
         "AppVersion": "—",
         "OnLatestVersion": "No",
@@ -38,5 +38,6 @@
         "Events_Customization": 0
       }
     ]
-  }
+  },
+  "bundleFetchError": "Metadata: Apps Script returned HTML, not JSON. Fix: Deploy → Manage deployments → Edit → \"Who has access\" must include anonymous access (e.g. \"Anyone\") so GitHub servers can read it — \"Anyone within Healthbridge\" blocks this job."
 }
