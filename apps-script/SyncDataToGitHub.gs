@@ -181,8 +181,20 @@ function pushJsonToGitHub_(jsonString, commitMessage) {
   };
 
   var putRes = UrlFetchApp.fetch(api, putOpt);
-  if (putRes.getResponseCode() !== 200 && putRes.getResponseCode() !== 201) {
-    throw new Error('GitHub PUT data.json failed: ' + putRes.getResponseCode() + ' ' + putRes.getContentText().slice(0, 800));
+  var putCode = putRes.getResponseCode();
+  if (putCode !== 200 && putCode !== 201) {
+    var putBody = putRes.getContentText().slice(0, 800);
+    if (putCode === 403) {
+      throw new Error(
+        'GitHub 403: token cannot write data.json. For a FINE-GRAINED token: edit the token on GitHub → Repository permissions → ' +
+          'set Contents to Read and write (not Read-only). Confirm the token includes repository ' +
+          g.owner +
+          '/' +
+          g.repo +
+          '. If the repo uses branch protection that blocks admins, adjust rules or use a classic PAT with repo scope.'
+      );
+    }
+    throw new Error('GitHub PUT data.json failed: ' + putCode + ' ' + putBody);
   }
 }
 
