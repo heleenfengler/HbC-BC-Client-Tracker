@@ -104,11 +104,23 @@ function sheetToClientSummary_(ss, sheetName) {
   return o;
 }
 
+function trimProp_(s) {
+  if (!s) return '';
+  s = String(s).replace(/^\s+|\s+$/g, '').replace(/[\u200b-\u200d\ufeff]/g, '');
+  if (
+    (s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
+    (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")
+  ) {
+    s = s.slice(1, s.length - 1).trim();
+  }
+  return s;
+}
+
 function getGitHubProps_() {
   var p = PropertiesService.getScriptProperties();
-  var token = p.getProperty('GITHUB_TOKEN');
-  var owner = p.getProperty('GITHUB_OWNER');
-  var repo = p.getProperty('GITHUB_REPO');
+  var token = trimProp_(p.getProperty('GITHUB_TOKEN'));
+  var owner = trimProp_(p.getProperty('GITHUB_OWNER'));
+  var repo = trimProp_(p.getProperty('GITHUB_REPO'));
   if (!token || !owner || !repo) {
     throw new Error('Set script properties GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
   }
@@ -136,6 +148,14 @@ function pushJsonToGitHub_(jsonString, commitMessage) {
   if (getRes.getResponseCode() === 200) {
     var cur = JSON.parse(getRes.getContentText());
     sha = cur.sha;
+  } else if (getRes.getResponseCode() === 401) {
+    throw new Error(
+      'GitHub 401 Bad credentials — GitHub rejected GITHUB_TOKEN. Fix: (1) Create a NEW fine-grained token, repo ' +
+        g.owner +
+        '/' +
+        g.repo +
+        ', permission Contents Read and write. (2) Paste only the token (no label, no quotes). (3) If your org uses SSO, open the token on github.com/settings/personal-access-tokens and Authorize SSO. (4) Or use a classic token with repo scope.'
+    );
   } else if (getRes.getResponseCode() !== 404) {
     throw new Error('GitHub GET data.json failed: ' + getRes.getResponseCode() + ' ' + getRes.getContentText().slice(0, 500));
   }

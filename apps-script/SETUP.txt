@@ -35,6 +35,12 @@ Use: SyncDataToGitHub.gs (runs inside Google as YOU, pushes data.json to GitHub)
      .github/workflows/update-hbc-data-bundle.yml (comment out "schedule:")
      so placeholder runs do not overwrite this file every night.
 
+If you see "401 Bad credentials":
+   - Regenerate the PAT; paste again (no spaces before/after).
+   - Fine-grained: Repository must include HbC-BC-Client-Tracker, Contents = Read and write.
+   - If company uses GitHub SSO: github.com → Settings → Personal access tokens → your token → Authorize SSO.
+   - Try a classic token (repo scope) if fine-grained keeps failing.
+
 Tab names expected (change SHEET_NAMES in the script if yours differ):
    Metadata       → rows with Key / Value (or columns A and B)
    BCOwnership    → row 1 = headers matching your API column names
