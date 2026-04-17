@@ -134,8 +134,20 @@ async function main() {
       bundle = await buildFromApi();
       console.log('Fetched live bundle from Apps Script.');
     } catch (e) {
-      console.error('Live fetch failed:', e.message || e);
-      process.exit(1);
+      const msg = String(e.message || e);
+      console.error('Live fetch failed:', msg);
+      if (process.env.HBC_PLACEHOLDER_ON_FETCH_ERROR === 'true') {
+        console.warn(
+          'HBC_PLACEHOLDER_ON_FETCH_ERROR=true — writing placeholder data.json so CI stays green. ' +
+            'Fix Apps Script (Who has access = Anyone) or URL/token, then remove this env from the workflow.'
+        );
+        bundle = placeholderBundle();
+        bundle.bundleFetchError = msg;
+        bundle.note =
+          'Placeholder: live Apps Script fetch failed in CI. See bundleFetchError. Remove HBC_PLACEHOLDER_ON_FETCH_ERROR when fixed.';
+      } else {
+        process.exit(1);
+      }
     }
   } else {
     console.warn('HBC_WEB_APP_URL / HBC_API_TOKEN not set — writing placeholder data.json');

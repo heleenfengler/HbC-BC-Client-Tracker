@@ -34,6 +34,9 @@ jobs:
 
       - name: Build data.json
         env:
+          # If Apps Script blocks anonymous access, live fetch fails. This keeps the workflow green
+          # and writes placeholder + bundleFetchError into data.json until you fix the deploy.
+          HBC_PLACEHOLDER_ON_FETCH_ERROR: 'true'
           HBC_WEB_APP_URL: ${{ secrets.HBC_WEB_APP_URL }}
           HBC_API_TOKEN: ${{ secrets.HBC_API_TOKEN }}
         run: node scripts/build-data-bundle.mjs
