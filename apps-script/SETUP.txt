@@ -1,0 +1,38 @@
+Best option when Workspace only allows "Anyone within org" on the web app
+================================================================================
+
+Use: SyncDataToGitHub.gs (runs inside Google as YOU, pushes data.json to GitHub)
+
+1) GitHub fine-grained token
+   - github.com → Settings → Developer settings → Fine-grained tokens → Generate
+   - Repository: HbC-BC-Client-Tracker only
+   - Permissions: Contents → Read and write
+
+2) Apps Script project (same project that owns your Sheet, or set SPREADSHEET_ID)
+   - Project Settings → Script properties:
+        GITHUB_TOKEN   = (paste token)
+        GITHUB_OWNER   = heleenfengler
+        GITHUB_REPO    = HbC-BC-Client-Tracker
+     Optional if script is not bound to the spreadsheet:
+        SPREADSHEET_ID = (from Sheet URL between /d/ and /edit)
+
+3) Code
+   - File → Add file → paste contents of SyncDataToGitHub.gs
+   - Save
+
+4) Authorize
+   - Run syncDataJsonToGitHub once → review permissions → Allow
+
+5) Schedule (optional)
+   - Run setupSyncTrigger_() once in the editor, OR
+   - Triggers (clock) → Add trigger → syncDataJsonToGitHub → Day timer → time
+
+6) GitHub Actions (optional)
+   - You can turn off the failing "Update HbC data bundle" schedule in
+     .github/workflows/update-hbc-data-bundle.yml (comment out "schedule:")
+     so placeholder runs do not overwrite this file every night.
+
+Tab names expected (change SHEET_NAMES in the script if yours differ):
+   Metadata       → rows with Key / Value (or columns A and B)
+   BCOwnership    → row 1 = headers matching your API column names
+   ClientSummary  → row 1 = headers matching your API column names
