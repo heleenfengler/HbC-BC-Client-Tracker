@@ -22,6 +22,16 @@ const outPath = process.env.OUT_PATH || path.join(root, 'data.json');
 const SHEETS = ['Metadata', 'BCOwnership', 'ClientSummary'];
 const TIMEOUT_MS = 120000;
 
+/** GitHub secrets sometimes include accidental quotes or newlines */
+function cleanEnv(s) {
+  if (!s || typeof s !== 'string') return '';
+  let t = s.trim().replace(/\r?\n/g, '');
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+    t = t.slice(1, -1).trim();
+  }
+  return t;
+}
+
 function placeholderBundle() {
   const iso = new Date().toISOString();
   return {
@@ -61,41 +71,62 @@ function placeholderBundle() {
 }
 
 async function fetchSheet(baseUrl, token, sheet) {
-  const u = new URL(baseUrl);
+  let u;
+  try {
+    u = new URL(baseUrl);
+  } catch (e) {
+    throw new Error(`Invalid HBC_WEB_APP_URL (must be full https URL ending in /exec): ${e.message}`);
+  }
   u.searchParams.set('sheet', sheet);
   u.searchParams.set('token', token);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(u.toString(), { signal: ctrl.signal });
+    const res = await fetch(u.toString(), { signal: ctrl.signal, redirect: 'follow' });
     const text = await res.text();
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${sheet}`);
     if (text.trim().startsWith('<')) {
-      throw new Error(`${sheet}: response is HTML (login or wrong URL)`);
+      const hint =
+        'Apps Script returned HTML, not JSON. Fix: Deploy → Manage deployments → Edit → ' +
+        '"Who has access" must include anonymous access (e.g. "Anyone") so GitHub servers can read it — ' +
+        '"Anyone within Healthbridge" blocks this job.';
+      throw new Error(`${sheet}: ${hint}`);
     }
-    return JSON.parse(text);
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      const snip = text.slice(0, 120).replace(/\s+/g, ' ');
+      throw new Error(`${sheet}: JSON parse error — first chars: ${snip}`);
+    }
   } finally {
     clearTimeout(t);
   }
 }
 
 async function buildFromApi() {
-  const baseUrl = process.env.HBC_WEB_APP_URL.trim();
-  const token = process.env.HBC_API_TOKEN.trim();
-  const [metadata, bcOwnership, clientSummary] = await Promise.all(
-    SHEETS.map((s) => fetchSheet(baseUrl, token, s))
-  );
+  const baseUrl = cleanEnv(process.env.HBC_WEB_APP_URL || '');
+  const token = cleanEnv(process.env.HBC_API_TOKEN || '');
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    throw new Error('HBC_WEB_APP_URL must start with https:// (check the secret for typos or extra characters)');
+  }
+  const out = {};
+  for (const sheet of SHEETS) {
+    console.log(`Fetching ${sheet}…`);
+    const key =
+      sheet === 'Metadata' ? 'metadata' : sheet === 'BCOwnership' ? 'bcOwnership' : 'clientSummary';
+    out[key] = await fetchSheet(baseUrl, token, sheet);
+  }
   return {
     generatedAt: new Date().toISOString(),
-    metadata,
-    bcOwnership,
-    clientSummary,
+    metadata: out.metadata,
+    bcOwnership: out.bcOwnership,
+    clientSummary: out.clientSummary,
   };
 }
 
 async function main() {
-  const hasUrl = !!process.env.HBC_WEB_APP_URL?.trim();
-  const hasTok = !!process.env.HBC_API_TOKEN?.trim();
+  const hasUrl = !!cleanEnv(process.env.HBC_WEB_APP_URL || '');
+  const hasTok = !!cleanEnv(process.env.HBC_API_TOKEN || '');
 
   let bundle;
   if (hasUrl && hasTok) {
