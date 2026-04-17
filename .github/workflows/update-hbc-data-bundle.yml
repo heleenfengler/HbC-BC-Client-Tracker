@@ -20,13 +20,11 @@ concurrency:
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    # Use Node 24 for @actions/* (see GitHub changelog: Node 20 runner deprecation)
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4
+      # v5+ uses Node 24 for the action runtime (avoids Node 20 deprecation warnings on v4)
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
 
