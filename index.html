@@ -500,7 +500,7 @@ tr:hover td{background:#fafaf8;}
       <div class="shdr"><h2>Encounters</h2><p><code>consult-complete</code> is the North Star metric · global filters apply</p></div>
       <div class="kg4">
         <div class="kpi kor"><div class="klbl">Total encounters (30d)</div><div class="kval" id="enk1">—</div><div class="ksub"><span class="du">+6.4% vs prior 30d</span></div></div>
-        <div class="kpi kgr"><div class="klbl">Avg enc / user / day</div><div class="kval">4.2</div><div class="ksub">Active encounter users only</div></div>
+        <div class="kpi kgr"><div class="klbl">Avg enc / user / day</div><div class="kval" id="enk2">—</div><div class="ksub">Active encounter users only · 30d window</div></div>
         <div class="kpi kpu"><div class="klbl">Peak day (30d)</div><div class="kval">9 812</div><div class="ksub">Wednesday trend</div></div>
         <div class="kpi kbu"><div class="klbl">0 encounters 14d+</div><div class="kval" id="enk4">—</div><div class="ksub"><span class="dd">↑ 2 vs prior period</span></div></div>
       </div>
@@ -1355,6 +1355,26 @@ function applyLiveData(sheetData, dataSourceLabel) {
     return EVENT_ALIASES.reduce((acc, al) => acc + cellNum_.apply(null, [r, rk].concat(al)), 0);
   }
 
+  /** Consult-complete / encounter volume: primary TotalEncounters*, else Events_Encounters (many pipelines only export buckets). */
+  function encounterCountFromRow_(r) {
+    const total = cellNum_(r, rk,
+      'TotalEncounters',
+      'Total Encounters',
+      'Total Encounters (30d)',
+      'TotalEncounters30d',
+      'Encounters (30d)',
+      'ConsultComplete',
+      'Consult Complete',
+      'Consult_Complete',
+      'Consult_Complete_30d',
+      'Encounters30d',
+      'Encounter_Count',
+      'Encounter Count'
+    );
+    if (total > 0) return total;
+    return cellNum_(r, rk, 'Events_Encounters', 'Events Encounters');
+  }
+
   // Build fast BPN lookup — BPN may be numeric in sheet, normalise to string no leading zeros
   const liveMap = {};
   sheetData.rows.forEach(r => {
@@ -1373,7 +1393,7 @@ function applyLiveData(sheetData, dataSourceLabel) {
     if (!live) return;   // no telemetry — stays enc=0, liveData=false
 
     c.liveData = true;
-    c.enc      = cellNum_(live, rk, 'TotalEncounters', 'Total Encounters');
+    c.enc      = encounterCountFromRow_(live);
     c.da       = cellNum_(live, rk, 'DaysActive', 'Days Active');
     c.feat     = featSum_(live);
     c.ai       = cellNum_(live, rk, 'Events_AI_Features', 'Events AI Features');
@@ -1416,7 +1436,7 @@ function applyLiveData(sheetData, dataSourceLabel) {
     if (!key) return;
     if (CLIENTS.find(c => String(c.bpn||'').replace(/^0+/,'').trim() === key)) return;
 
-    const enc  = cellNum_(r, rk, 'TotalEncounters', 'Total Encounters');
+    const enc  = encounterCountFromRow_(r);
     const da   = cellNum_(r, rk, 'DaysActive', 'Days Active');
     const feat = featSum_(r);
     const ai   = cellNum_(r, rk, 'Events_AI_Features', 'Events AI Features');
@@ -1947,9 +1967,15 @@ function renderOverview(){
 
 // ── ENCOUNTERS ──
 function renderEncKPIs(){
-  const fc=FC,t=fc.reduce((a,c)=>a+c.enc,0);
-  document.getElementById('enk1').textContent=t.toLocaleString();
-  document.getElementById('enk4').textContent=fc.filter(c=>c.enc<5).length;
+  const fc = FC;
+  const t = fc.reduce((a, c) => a + c.enc, 0);
+  const e1 = document.getElementById('enk1');
+  if (e1) e1.textContent = t.toLocaleString();
+  const nu = fc.filter(c => c.enc > 0).length;
+  const e2 = document.getElementById('enk2');
+  if (e2) e2.textContent = nu ? (t / nu / 30).toFixed(1) : '—';
+  const e4 = document.getElementById('enk4');
+  if (e4) e4.textContent = fc.filter(c => c.enc < 5).length;
 }
 function renderEncTable(){
   // ── Add 7: populate team filter dropdown on first render ──
