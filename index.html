@@ -528,9 +528,9 @@ tr:hover td{background:#fafaf8;}
       <div class="shdr"><h2>Features</h2><p>Category-level usage trends and AI feature adoption depth · filtered set</p></div>
       <div class="kg4">
         <div class="kpi kor"><div class="klbl">Feature events (30d)</div><div class="kval" id="fek1">—</div><div class="ksub"><span class="du">+18% MoM</span></div></div>
-        <div class="kpi kgr"><div class="klbl">Top category</div><div class="kval" style="font-size:17px">Encounters</div><div class="ksub">21% of all events</div></div>
-        <div class="kpi kpu"><div class="klbl">AI adoption</div><div class="kval">43%</div><div class="ksub">Of active encounter users</div></div>
-        <div class="kpi kbu"><div class="klbl">Feature-only users</div><div class="kval">3 100</div><div class="ksub">Daily avg · no consult-complete</div></div>
+        <div class="kpi kgr"><div class="klbl">Top category</div><div class="kval" style="font-size:17px" id="fek-top-cat">—</div><div class="ksub" id="fek-top-sub">Share of logged events</div></div>
+        <div class="kpi kpu"><div class="klbl">AI adoption</div><div class="kval" id="fek-ai">—</div><div class="ksub">Share of meaningful events · AI Features</div></div>
+        <div class="kpi kbu"><div class="klbl">Feature-only clients</div><div class="kval" id="fek-fo">—</div><div class="ksub">In filtered set · enc = 0, features &gt; 0</div></div>
       </div>
       <div class="ch3">
         <div class="card">
@@ -813,35 +813,54 @@ function updateFreshnessBar(info) {
 // Apps Script CORS note: the deployed URL may redirect to a login page if
 // the Workspace domain restricts public access. We try fetch() first; if
 // the response is HTML (login redirect) we surface a clear error.
+function _hbcFetchDiag_(msg) {
+  try { window._hbcLastFetchHint = msg; } catch (e) {}
+}
+
 async function fetchJsonWithTimeout(url, timeoutMs, labelForErrors) {
-  const fetchPromise = fetch(url).then(async res => {
-    const text = await res.text();
-    if (!res.ok) {
-      setLiveStatus((labelForErrors || url) + ' HTTP ' + res.status, 'warn');
+  const label = labelForErrors || url;
+  _hbcFetchDiag_('');
+  const fetchPromise = fetch(url)
+    .then(async function(res) {
+      const text = await res.text();
+      if (!res.ok) {
+        _hbcFetchDiag_(label + ' HTTP ' + res.status);
+        setLiveStatus(label + ' HTTP ' + res.status, 'warn');
+        return null;
+      }
+      if (text.trim().startsWith('<')) {
+        _hbcFetchDiag_(label + ' returned HTML (login redirect, wrong URL, or Apps Script not exposing JSON to this origin)');
+        setLiveStatus(label + ' returned HTML (login page or wrong URL).', 'error');
+        showRetryButton();
+        return null;
+      }
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        _hbcFetchDiag_(label + ' invalid JSON: ' + e.message);
+        setLiveStatus('Invalid JSON from ' + label + ': ' + e.message, 'error');
+        return null;
+      }
+    })
+    .catch(function(err) {
+      const m = err && err.message ? err.message : String(err);
+      _hbcFetchDiag_('Failed to fetch (offline, blocked, or CORS): ' + m);
+      setLiveStatus('Fetch error (' + label + '): ' + m, 'error');
       return null;
-    }
-    if (text.trim().startsWith('<')) {
-      setLiveStatus((labelForErrors || 'Request') + ' returned HTML (login page or wrong URL).', 'error');
-      showRetryButton();
-      return null;
-    }
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      setLiveStatus('Invalid JSON from ' + (labelForErrors || url) + ': ' + e.message, 'error');
-      return null;
-    }
+    });
+
+  const timeoutPromise = new Promise(function(_, reject) {
+    setTimeout(function() { reject(new Error('timeout')); }, timeoutMs);
   });
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('timeout')), timeoutMs)
-  );
   try {
     return await Promise.race([fetchPromise, timeoutPromise]);
   } catch (err) {
     if (err.message === 'timeout') {
-      setLiveStatus((labelForErrors || 'Request') + ' timed out after ' + Math.round(timeoutMs / 1000) + 's', 'warn');
+      _hbcFetchDiag_(label + ' timed out after ' + Math.round(timeoutMs / 1000) + 's');
+      setLiveStatus(label + ' timed out after ' + Math.round(timeoutMs / 1000) + 's', 'warn');
     } else {
-      setLiveStatus('Fetch error (' + (labelForErrors || url) + '): ' + err.message, 'error');
+      _hbcFetchDiag_(String(err.message || err));
+      setLiveStatus('Fetch error (' + label + '): ' + err.message, 'error');
     }
     return null;
   }
@@ -966,7 +985,9 @@ async function loadLiveData() {
 
     const meta = await apiFetch('Metadata', 15000);
     if (!meta || meta.error) {
-      setLiveStatus('[1/3] API unreachable: ' + (meta?.message || 'no response'), 'error');
+      const hint = typeof window !== 'undefined' && window._hbcLastFetchHint ? window._hbcLastFetchHint : '';
+      const apiDetail = meta && meta.message ? meta.message : (hint || 'no response');
+      setLiveStatus('[1/3] API unreachable: ' + apiDetail + ' · GitHub Pages usually cannot call Workspace-only Apps Script — fix data.json (Apps Script→GitHub sync) or deploy web app as Anyone.', 'error');
       showRetryButton();
       applyF();
       return;
@@ -1096,6 +1117,22 @@ function applyBCOwnership_(rows) {
 }
 
 // ── ClientSummary row keys (Sheets headers vary: spaces, spelling, casing) ─
+/** Prefer a row with the most columns so Event_* headers are not missed when row 1 is sparse */
+function pickSampleRowForKeys_(rows) {
+  if (!rows || !rows.length) return null;
+  let best = rows[0];
+  let n = Object.keys(best || {}).length;
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const k = Object.keys(r || {}).length;
+    if (k > n) {
+      n = k;
+      best = r;
+    }
+  }
+  return best;
+}
+
 function clientSummaryHeaderResolver_(sampleRow) {
   if (!sampleRow || typeof sampleRow !== 'object') {
     return function resolveKey() { return null; };
@@ -1152,7 +1189,7 @@ function cellStr_(r, resolveKey) {
 // ── FEATURE MAP FROM ClientSummary (aggregated event columns) ─────────────
 function rebuildFeatureMapFromSheetData_(sheetData) {
   if (!sheetData || !sheetData.rows || !sheetData.rows.length) return;
-  const sample = sheetData.rows.find(rr => rr && typeof rr === 'object' && Object.keys(rr).length) || sheetData.rows[0];
+  const sample = pickSampleRowForKeys_(sheetData.rows) || sheetData.rows[0];
   const rk = clientSummaryHeaderResolver_(sample);
   const pairs = [
     [['Events_Encounters', 'Events Encounters'], 'Encounters'],
@@ -1298,9 +1335,11 @@ function applyLiveData(sheetData, dataSourceLabel) {
     return;
   }
 
-  const sampleRow = sheetData.rows.find(rr => rr && typeof rr === 'object' && Object.keys(rr).length) || sheetData.rows[0];
+  const sampleRow = pickSampleRowForKeys_(sheetData.rows) || sheetData.rows[0];
   const rk = clientSummaryHeaderResolver_(sampleRow);
   const bpnCol = rk('BPN', 'Practice BPN', 'PracticeBPN', 'BPN Number') || 'BPN';
+
+  try { window._hbcClientSummary = sheetData; } catch (e) {}
 
   const EVENT_ALIASES = [
     ['Events_Encounters', 'Events Encounters'],
@@ -1426,10 +1465,7 @@ function applyLiveData(sheetData, dataSourceLabel) {
   console.log('[HbC] applyLiveData — enriched: ' + enriched + ', added: ' + added + ', total: ' + CLIENTS.length);
   setLiveStatus('Loaded ' + CLIENTS.length + ' practices (' + enriched + ' matched · ' + added + ' telemetry-only)', 'ok');
 
-  rebuildFeatureMapFromSheetData_(sheetData);
-  buildFeatureBars();
-  refreshCategoryPieChart_();
-  if (typeof window.__hbcRefreshStackedCategoryChart === 'function') window.__hbcRefreshStackedCategoryChart();
+  refreshFeaturesVisuals_();
   refreshExecChartsAfterLive_();
 }
 
@@ -1525,7 +1561,7 @@ function refresh(tab){
   if(tab==='exec')renderExec();
   if(tab==='overview')renderOverview();
   if(tab==='encounters'){renderEncKPIs();renderEncTable();}
-  if(tab==='features')renderFeatKPIs();
+  if(tab==='features')refreshFeaturesVisuals_();
   if(tab==='bcview')renderBCTable();
   if(tab==='anomalies')renderAnomTable();
 }
@@ -1974,8 +2010,46 @@ function renderEncTable(){
 
 // ── FEATURES ──
 function renderFeatKPIs(){
-  const t=FC.reduce((a,c)=>a+c.feat,0);
-  document.getElementById('fek1').textContent=t>=1000?(t/1000).toFixed(1)+'K':t;
+  const t = FC.reduce((a, c) => a + c.feat, 0);
+  const el = document.getElementById('fek1');
+  if (el) el.textContent = t >= 1000 ? (t / 1000).toFixed(1) + 'K' : String(t);
+
+  const meaningful = CATS.filter(c => !c.includes('Noise')).reduce((a, c) => {
+    return a + (FEATURES_MAP[c] || []).reduce((s, f) => s + f.c, 0);
+  }, 0);
+  const topCat = CATS.reduce((best, c) => {
+    const v = (FEATURES_MAP[c] || []).reduce((s, f) => s + f.c, 0);
+    if (!best || v > best.v) return { name: c, v };
+    return best;
+  }, null);
+  const aiEv = (FEATURES_MAP['AI Features'] || []).reduce((a, f) => a + f.c, 0);
+  const foN = FC.filter(c => c.enc === 0 && c.feat > 0).length;
+
+  const tc = document.getElementById('fek-top-cat');
+  const ts = document.getElementById('fek-top-sub');
+  if (tc) tc.textContent = topCat && topCat.v > 0 ? topCat.name : '—';
+  if (ts) ts.textContent = topCat && meaningful > 0
+    ? Math.round(topCat.v / meaningful * 100) + '% of meaningful events'
+    : 'No category totals in bundle';
+
+  const fa = document.getElementById('fek-ai');
+  if (fa) fa.textContent = meaningful > 0 ? Math.round(aiEv / meaningful * 100) + '%' : '—';
+
+  const ff = document.getElementById('fek-fo');
+  if (ff) ff.textContent = foN.toLocaleString();
+
+  if (meaningful === 0 && t > 0 && window._hbcClientSummary) {
+    console.warn('[HbC] Category event totals are 0 in data.json but clients show feature counts — ClientSummary may use different column names for Events_* (inspect first wide row\'s keys).');
+  }
+}
+
+function refreshFeaturesVisuals_() {
+  const sd = typeof window !== 'undefined' ? window._hbcClientSummary : null;
+  if (sd && sd.rows && sd.rows.length) rebuildFeatureMapFromSheetData_(sd);
+  buildFeatureBars();
+  refreshCategoryPieChart_();
+  if (typeof window.__hbcRefreshStackedCategoryChart === 'function') window.__hbcRefreshStackedCategoryChart();
+  renderFeatKPIs();
 }
 
 // ── BC VIEW ──
