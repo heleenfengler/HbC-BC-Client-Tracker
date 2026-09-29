@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-09-28T08:21:20.230Z",
+  "generatedAt": "2026-09-29T08:00:07.427Z",
   "note": "Placeholder: live Apps Script fetch failed in CI. See bundleFetchError. Remove HBC_PLACEHOLDER_ON_FETCH_ERROR when fixed.",
   "metadata": {
     "rows": [
       {
         "Key": "LastRefreshed_SAST",
-        "Value": "2026-09-28 08:21:20 (placeholder)"
+        "Value": "2026-09-29 08:00:07 (placeholder)"
       },
       {
         "Key": "LATEST_VERSION",
